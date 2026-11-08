@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-08
+
+### Added
+- The MCP port serves the server logo without authentication (`/favicon.svg`, `/favicon.png`, `/favicon.ico`) and a
+  minimal home page linking to it, and the `initialize` response declares it in `serverInfo.icons`, so clients such
+  as claude.ai show it next to the connector.
+
 ## [0.1.1] - 2026-11-08
 
 ### Changed
@@ -42,5 +49,6 @@ First release.
 ### Distribution
 - Container image for linux/amd64 and linux/arm64 on `ghcr.io/kallioli/infomaniak-mcp-server`.
 
+[0.1.2]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.2
 [0.1.1]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.1
 [0.1.0]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.0
