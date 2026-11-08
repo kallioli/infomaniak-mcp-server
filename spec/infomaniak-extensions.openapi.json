@@ -3,7 +3,7 @@
  "info": {
   "title": "Infomaniak API — extensions ik-api-explore",
   "version": "1.0.0",
-  "description": "À fusionner sur le spec officiel : opérations absentes ajoutées, x-ik-replace remplace l'opération officielle, x-ik-extra-parameters ajoute des paramètres."
+  "description": "To be merged on top of the official spec: missing operations are added, x-ik-replace replaces the official operation, x-ik-extra-parameters adds parameters."
  },
  "paths": {
   "/1/accounts/{account_id}/products/simple": {
@@ -786,7 +786,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Adresses de facturation du compte",
+    "summary": "Billing addresses of the account",
     "operationId": "ikx_get_invoicing_by_account_id_addresses",
     "parameters": [
      {
@@ -921,7 +921,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Ajouter une adresse de facturation",
+    "summary": "Add a billing address",
     "operationId": "ikx_post_invoicing_by_account_id_addresses",
     "parameters": [
      {
@@ -950,7 +950,7 @@
      "host": "api.infomaniak.com",
      "observations": 0
     },
-    "description": "Méthode annoncée par OPTIONS, non exécutée (modifie la facturation).",
+    "description": "Method advertised by OPTIONS, not executed (changes billing).",
     "x-ik-dangerous": true
    }
   },
@@ -959,7 +959,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Factures du compte",
+    "summary": "Invoices of the account",
     "operationId": "ikx_get_invoicing_by_account_id_invoice_list",
     "parameters": [
      {
@@ -1493,7 +1493,7 @@
       "verdict": "token-ok"
      }
     },
-    "description": "Filtres observés : status (ex. expired), service_id, item_id. Existe aussi sans le préfixe de version : /invoicing/{account_id}/invoice/list."
+    "description": "Observed filters: status (e.g. expired), service_id, item_id. Also exists without the version prefix: /invoicing/{account_id}/invoice/list."
    }
   },
   "/1/invoicing/{account_id}/payment_profile": {
@@ -1501,7 +1501,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Profil de paiement du compte",
+    "summary": "Payment profile of the account",
     "operationId": "ikx_get_invoicing_by_account_id_payment_profile",
     "parameters": [
      {
@@ -1649,7 +1649,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Modifier le profil de paiement",
+    "summary": "Update the payment profile",
     "operationId": "ikx_post_invoicing_by_account_id_payment_profile",
     "parameters": [
      {
@@ -1678,7 +1678,7 @@
      "host": "api.infomaniak.com",
      "observations": 0
     },
-    "description": "Méthode annoncée par OPTIONS, non exécutée (modifie le moyen de paiement).",
+    "description": "Method advertised by OPTIONS, not executed (changes the payment method).",
     "x-ik-dangerous": true
    }
   },
@@ -2938,7 +2938,7 @@
      "Projects"
     ],
     "summary": "Create project",
-    "description": "Crée le projet ET un premier utilisateur OpenStack (user_password, user_description). L'id du projet est dans la réponse de la tâche.",
+    "description": "Creates the project AND a first OpenStack user (user_password, user_description). The project id is in the task response.",
     "operationId": "Public/CloudCreateProject",
     "parameters": [
      {
@@ -3468,7 +3468,7 @@
            "1.37"
           ],
           "type": "string",
-          "description": "Liste à jour : GET /1/public_clouds/kaas/versions. kaas_pack_id : GET /1/public_clouds/kaas/packs (1 = shared, gratuit, 1 par projet)."
+          "description": "Current list: GET /1/public_clouds/kaas/versions. kaas_pack_id: GET /1/public_clouds/kaas/packs (1 = shared, free, 1 per project)."
          },
          "name": {
           "title": "name",
@@ -3610,7 +3610,7 @@
      "Users"
     ],
     "summary": "Create user",
-    "description": "L'uuid renvoyé est celui de la tâche, pas l'id de l'utilisateur (id dans la réponse de la tâche).",
+    "description": "The returned uuid is the task's, not the user id (the id is in the task response).",
     "operationId": "Public/CloudCreateUser",
     "parameters": [
      {
@@ -3987,7 +3987,7 @@
      "Users"
     ],
     "summary": "Get authentication file",
-    "description": "Le contenu du fichier openrc est dans response.data de la tâche.",
+    "description": "The openrc file content is in the task's response.data.",
     "operationId": "Public/CloudGetAuthenticationFile",
     "parameters": [
      {
@@ -6926,7 +6926,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Modifier l'hébergement (nom, description)",
+    "summary": "Update the web hosting (name, description)",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id",
     "parameters": [
      {
@@ -7023,7 +7023,7 @@
       }
      }
     },
-    "description": "Champs optionnels customer_name et description (chaînes de 2 caractères minimum). Une description ne peut pas être remise à vide : \"\" est ignoré et null refusé."
+    "description": "Optional fields customer_name and description (strings of at least 2 characters). A description cannot be cleared: \"\" is ignored and null is refused."
    }
   },
   "/1/web_hostings/{web_hosting_id}/actions/get_folders": {
@@ -8001,7 +8001,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Installer un certificat sur un site",
+    "summary": "Install a certificate on a site",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_certificates",
     "parameters": [
      {
@@ -8131,7 +8131,7 @@
      },
      "required": true
     },
-    "description": "custom : PEM fournis (testé avec un auto-signé). free : Let's Encrypt (le domaine doit pointer sur l'hébergement, non testé). paid : non testé. GET sur cette collection : 401 au token."
+    "description": "custom: PEM provided (tested with a self-signed one). free: Let's Encrypt (the domain must point to the hosting, not tested). paid: not tested. GET on this collection: 401 with a token."
    }
   },
   "/1/web_hostings/{web_hosting_id}/certificates/{certificate_id}": {
@@ -8139,7 +8139,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Retirer le certificat d'un site",
+    "summary": "Remove the certificate of a site",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_certificates_by_certificate_id",
     "parameters": [
      {
@@ -8209,7 +8209,7 @@
       "source": "observed"
      }
     },
-    "description": "Le site repasse en ssl_status=disabled.",
+    "description": "The site goes back to ssl_status=disabled.",
     "x-ik-dangerous": true
    },
    "get": {
@@ -8359,13 +8359,13 @@
       "verdict": "token-ok"
      }
     },
-    "description": "certificate_id = identifiant du site."
+    "description": "certificate_id = site id."
    },
    "patch": {
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Remplacer le certificat d'un site",
+    "summary": "Replace the certificate of a site",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_certificates_by_certificate_id",
     "parameters": [
      {
@@ -8811,7 +8811,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Créer un utilisateur de base de données",
+    "summary": "Create a database user",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_database_users",
     "parameters": [
      {
@@ -8955,7 +8955,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Supprimer un utilisateur de base",
+    "summary": "Delete a database user",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_database_users_by_database_user_name",
     "parameters": [
      {
@@ -9030,7 +9030,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Modifier les droits d'un utilisateur de base",
+    "summary": "Update the rights of a database user",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_database_users_by_database_user_name",
     "parameters": [
      {
@@ -9368,7 +9368,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Créer une base de données",
+    "summary": "Create a database",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_databases",
     "parameters": [
      {
@@ -9490,7 +9490,7 @@
      },
      "required": true
     },
-    "description": "Le préfixe de l'hébergement (ex. hr7p5_) est ajouté au nom. 400 the_database_name_is_incorrect si le nom est invalide."
+    "description": "The hosting prefix (e.g. hr7p5_) is added to the name. 400 the_database_name_is_incorrect if the name is invalid."
    }
   },
   "/1/web_hostings/{web_hosting_id}/databases/actions/import": {
@@ -9697,7 +9697,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Supprimer une base de données",
+    "summary": "Delete a database",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_databases_by_database_name",
     "parameters": [
      {
@@ -9773,7 +9773,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Détail d'une base",
+    "summary": "Get a database",
     "operationId": "ikx_get_web_hostings_by_web_hosting_id_databases_by_database_name",
     "parameters": [
      {
@@ -9919,7 +9919,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Modifier une base (ex. description)",
+    "summary": "Update a database (e.g. description)",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_databases_by_database_name",
     "parameters": [
      {
@@ -10595,7 +10595,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Créer un site",
+    "summary": "Create a site",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_sites",
     "parameters": [
      {
@@ -10691,7 +10691,7 @@
      },
      "required": true
     },
-    "description": "Asynchrone : répond un progress_id ; le site apparaît dans GET /sites (has_operation_in_progress=false une fois prêt). Aucun enregistrement DNS n'est créé automatiquement (constaté sur un sous-domaine d'une zone existante)."
+    "description": "Asynchronous: returns a progress_id; the site shows up in GET /sites (has_operation_in_progress=false once ready). No DNS record is created automatically (observed on a subdomain of an existing zone)."
    }
   },
   "/1/web_hostings/{web_hosting_id}/sites/{site_id}": {
@@ -10699,7 +10699,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Supprimer un site",
+    "summary": "Delete a site",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_sites_by_site_id",
     "parameters": [
      {
@@ -10788,7 +10788,7 @@
       }
      }
     },
-    "description": "Asynchrone (progress_id). Supprime le site et son dossier.",
+    "description": "Asynchronous (progress_id). Deletes the site and its folder.",
     "x-ik-dangerous": true
    },
    "get": {
@@ -11353,7 +11353,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Modifier un site",
+    "summary": "Update a site",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_sites_by_site_id",
     "parameters": [
      {
@@ -11541,7 +11541,7 @@
       }
      }
     },
-    "description": "PATCH partiel (ex. description). Répond le site mis à jour."
+    "description": "Partial PATCH (e.g. description). Returns the updated site."
    }
   },
   "/1/web_hostings/{web_hosting_id}/sites/{site_id}/actions/maintenance": {
@@ -11761,7 +11761,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Ajouter des alias (domaines) à un site",
+    "summary": "Add aliases (domains) to a site",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_sites_by_site_id_aliases",
     "parameters": [
      {
@@ -11921,7 +11921,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Retirer un alias",
+    "summary": "Remove an alias",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_sites_by_site_id_aliases_by_alias",
     "parameters": [
      {
@@ -12915,7 +12915,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Lancer un scan antivirus de tous les sites",
+    "summary": "Start an antivirus scan of all sites",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_tools_antivirus",
     "parameters": [
      {
@@ -12994,7 +12994,7 @@
       }
      }
     },
-    "description": "Aucun corps requis (les champs inconnus sont ignorés). Lecture seule ; résultat via GET tools/antivirus et last_report (~5 min pour 6 sites)."
+    "description": "No body required (unknown fields are ignored). Read-only; results through GET tools/antivirus and last_report (~5 min for 6 sites)."
    }
   },
   "/1/web_hostings/{web_hosting_id}/tools/antivirus/actions/clean": {
@@ -14224,13 +14224,13 @@
       "verdict": "token-ok"
      }
     },
-    "description": "Paginé (10 par défaut) : passer per_page, sinon les règles personnalisées (type=custom) peuvent manquer."
+    "description": "Paginated (10 by default): pass per_page, otherwise custom rules (type=custom) may be missing."
    },
    "post": {
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Ouvrir un port",
+    "summary": "Open a port",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_tools_ports",
     "parameters": [
      {
@@ -14337,7 +14337,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Fermer un port",
+    "summary": "Close a port",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_tools_ports_by_rule_id",
     "parameters": [
      {
@@ -14416,7 +14416,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Remplacer une règle de port",
+    "summary": "Replace a port rule",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_tools_ports_by_rule_id",
     "parameters": [
      {
@@ -14518,7 +14518,7 @@
      },
      "required": true
     },
-    "description": "Corps complet requis. Asynchrone et la règle CHANGE d'identifiant : relire la liste pour obtenir le nouveau rule_id."
+    "description": "Full body required. Asynchronous, and the rule CHANGES id: read the list again to get the new rule_id."
    }
   },
   "/1/web_hostings/{web_hosting_id}/tools/restore_backups": {
@@ -14680,7 +14680,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Restaurer depuis une sauvegarde",
+    "summary": "Restore from a backup",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_tools_restore_backups",
     "parameters": [
      {
@@ -14832,7 +14832,7 @@
      "required": true
     },
     "x-ik-dangerous": true,
-    "description": "Testé le 2026-11-08 sur une base de dev (mode advanced, databases=[nom]) : 200 {data: true}, puis has_operation_in_progress=true sur l'hébergement pendant ~2 min 30. `date` = champ date d'une entrée de GET tools/restore_backups (date globale de la sauvegarde, pas celle de la base). mode simple : restaure tout (non testé). websites : noms ou chemins de sites ; databases : noms de bases. should_erase_file concerne les fichiers."
+    "description": "Tested on 2026-11-08 on a dev database (advanced mode, databases=[name]): 200 {data: true}, then has_operation_in_progress=true on the hosting for ~2 min 30. `date` = date field of an entry of GET tools/restore_backups (overall backup date, not the database's). simple mode: restores everything (not tested). websites: site names or paths; databases: database names. should_erase_file applies to files."
    }
   },
   "/1/web_hostings/{web_hosting_id}/tools/web_crons": {
@@ -14993,7 +14993,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Créer un cron",
+    "summary": "Create a cron",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_tools_web_crons",
     "parameters": [
      {
@@ -15434,7 +15434,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Supprimer un cron",
+    "summary": "Delete a cron",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_tools_web_crons_by_web_cron_id",
     "parameters": [
      {
@@ -15509,7 +15509,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Remplacer un cron",
+    "summary": "Replace a cron",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_tools_web_crons_by_web_cron_id",
     "parameters": [
      {
@@ -15650,7 +15650,7 @@
      },
      "required": true
     },
-    "description": "Malgré le verbe PATCH, tous les champs sont requis (422 sinon)."
+    "description": "Despite the PATCH verb, every field is required (422 otherwise)."
    }
   },
   "/1/web_hostings/{web_hosting_id}/users": {
@@ -15780,7 +15780,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Créer un compte FTP ou SSH",
+    "summary": "Create an FTP or SSH account",
     "operationId": "ikx_post_web_hostings_by_web_hosting_id_users",
     "parameters": [
      {
@@ -15893,7 +15893,7 @@
          },
          "login": {
           "type": "string",
-          "description": "Préfixe de l'hébergement ajouté automatiquement."
+          "description": "The hosting prefix is added automatically."
          },
          "password": {
           "type": "string"
@@ -15916,7 +15916,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Supprimer un compte FTP/SSH",
+    "summary": "Delete an FTP/SSH account",
     "operationId": "ikx_delete_web_hostings_by_web_hosting_id_users_by_user_login",
     "parameters": [
      {
@@ -15991,7 +15991,7 @@
     "tags": [
      "Web Hosting"
     ],
-    "summary": "Modifier un compte FTP/SSH",
+    "summary": "Update an FTP/SSH account",
     "operationId": "ikx_patch_web_hostings_by_web_hosting_id_users_by_user_login",
     "parameters": [
      {
@@ -16454,7 +16454,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Ajouter une adresse de facturation (non testé)",
+    "summary": "Add a billing address (not tested)",
     "operationId": "ikx_post_invoicing_by_account_by_account_id_address",
     "parameters": [
      {
@@ -16642,7 +16642,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Factures du compte",
+    "summary": "Invoices of the account",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_invoices",
     "parameters": [
      {
@@ -16735,7 +16735,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Commandes du compte",
+    "summary": "Orders of the account",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_orders",
     "parameters": [
      {
@@ -16906,7 +16906,7 @@
       "verdict": "token-ok"
      }
     },
-    "description": "Paginé (total). status : pending_payment, finished… ; type : initial_command, renew…"
+    "description": "Paginated (total). status: pending_payment, finished…; type: initial_command, renew…"
    }
   },
   "/2/invoicing/account/{account_id}/orders/{order_id}": {
@@ -16914,7 +16914,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Détail d'une commande",
+    "summary": "Get an order",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_orders_by_order_id",
     "parameters": [
      {
@@ -17057,7 +17057,7 @@
       "verdict": "token-ok"
      }
     },
-    "description": "status, montants, expire_at (une commande non payée expire), pdf, invoice_id. Permet de suivre une commande passée via POST /order/cart/{uuid}/checkout."
+    "description": "status, amounts, expire_at (an unpaid order expires), pdf, invoice_id. Follows an order placed through POST /order/cart/{uuid}/checkout."
    }
   },
   "/2/invoicing/account/{account_id}/payment/modes": {
@@ -17065,7 +17065,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Moyens de paiement enregistrés",
+    "summary": "Saved payment methods",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_payment_modes",
     "parameters": [
      {
@@ -17174,7 +17174,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Solde du crédit prépayé",
+    "summary": "Prepaid credit balance",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_payment_prepaid",
     "parameters": [
      {
@@ -17272,7 +17272,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Mouvements du crédit prépayé",
+    "summary": "Prepaid credit operations",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_payment_prepaid_operations",
     "parameters": [
      {
@@ -17617,7 +17617,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Modifier le profil de paiement (non testé)",
+    "summary": "Update the payment profile (not tested)",
     "operationId": "ikx_post_invoicing_by_account_by_account_id_payment_profile",
     "parameters": [
      {
@@ -17654,7 +17654,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Transactions effectuées",
+    "summary": "Payments made",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_payments",
     "parameters": [
      {
@@ -18084,7 +18084,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Réglages de facturation",
+    "summary": "Billing settings",
     "operationId": "ikx_get_invoicing_by_account_by_account_id_settings",
     "parameters": [
      {
@@ -18852,7 +18852,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Détail d'un compte",
+    "summary": "Get an account",
     "operationId": "ikx_get_by_account_by_account_id",
     "parameters": [
      {
@@ -19043,7 +19043,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Modifier un compte (non testé)",
+    "summary": "Update an account (not tested)",
     "operationId": "ikx_put_by_account_by_account_id",
     "parameters": [
      {
@@ -19080,7 +19080,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Invitations du compte",
+    "summary": "Invitations of the account",
     "operationId": "ikx_get_by_account_by_account_id_invitation",
     "parameters": [
      {
@@ -19165,7 +19165,7 @@
       "verdict": "token-ok"
      }
     },
-    "description": "statuses[]=pending… ; return=total. Création documentée : POST /1/accounts/{account}/invitations (champ silent=true pour ne pas envoyer d'e-mail)."
+    "description": "statuses[]=pending…; return=total. Documented creation: POST /1/accounts/{account}/invitations (silent=true to send no e-mail)."
    }
   },
   "/account/{account_id}/log": {
@@ -19173,7 +19173,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Journal d'activité du compte (commandes, connexions, modifications)",
+    "summary": "Activity log of the account (orders, logins, changes)",
     "operationId": "ikx_get_by_account_by_account_id_log",
     "parameters": [
      {
@@ -19346,7 +19346,7 @@
       "verdict": "token-ok"
      }
     },
-    "description": "Paginé (page, per_page). Libellés des actions : GET /action."
+    "description": "Paginated (page, per_page). Action labels: GET /action."
    }
   },
   "/account/{account_id}/permission": {
@@ -19354,7 +19354,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Matrice des permissions disponibles par service (permissions_config)",
+    "summary": "Available permissions per service (permissions_config)",
     "operationId": "ikx_get_by_account_by_account_id_permission",
     "parameters": [
      {
@@ -19480,7 +19480,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Transferts de produits entre comptes (en cours / terminés)",
+    "summary": "Product transfers between accounts (ongoing / finished)",
     "operationId": "ikx_get_by_account_by_account_id_product_transfer",
     "parameters": [
      {
@@ -19651,7 +19651,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Créer un transfert de produit vers un autre compte (non testé)",
+    "summary": "Transfer a product to another account (not tested)",
     "operationId": "ikx_post_by_account_by_account_id_product_transfer",
     "parameters": [
      {
@@ -19688,7 +19688,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Utilisateurs du compte (avec droits, 2FA, dernière connexion)",
+    "summary": "Users of the account (with rights, 2FA, last login)",
     "operationId": "ikx_get_by_account_by_account_id_user",
     "parameters": [
      {
@@ -19902,13 +19902,13 @@
       "verdict": "token-ok"
      }
     },
-    "description": "Paginé (page, per_page) ; return=total pour le seul nombre."
+    "description": "Paginated (page, per_page); return=total for the count only."
    },
    "post": {
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Ajouter un utilisateur (non testé : attribution de droits)",
+    "summary": "Add a user (not tested: grants rights)",
     "operationId": "ikx_post_by_account_by_account_id_user",
     "parameters": [
      {
@@ -19945,7 +19945,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Retirer un utilisateur du compte (non testé)",
+    "summary": "Remove a user from the account (not tested)",
     "operationId": "ikx_delete_by_account_by_account_id_by_user_by_user_id",
     "parameters": [
      {
@@ -20030,7 +20030,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Modifier partiellement un utilisateur (non testé)",
+    "summary": "Partially update a user (not tested)",
     "operationId": "ikx_patch_by_account_by_account_id_by_user_by_user_id",
     "parameters": [
      {
@@ -20073,7 +20073,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Modifier un utilisateur (non testé)",
+    "summary": "Update a user (not tested)",
     "operationId": "ikx_put_by_account_by_account_id_by_user_by_user_id",
     "parameters": [
      {
@@ -20118,7 +20118,7 @@
     "tags": [
      "Core Resources > User Management > Accounts (API manager)"
     ],
-    "summary": "Référentiel des actions du journal",
+    "summary": "Activity log action labels",
     "operationId": "ikx_get_action",
     "parameters": [
      {
@@ -23016,7 +23016,7 @@
     "tags": [
      "Domain & Zone > Domain (API manager)"
     ],
-    "summary": "Lister les enregistrements DNS (API manager)",
+    "summary": "List DNS records (manager API)",
     "operationId": "ikx_get_by_domain_by_domain_id_dns_record",
     "parameters": [
      {
@@ -23149,7 +23149,7 @@
     "tags": [
      "Domain & Zone > Domain (API manager)"
     ],
-    "summary": "Créer un enregistrement DNS",
+    "summary": "Create a DNS record",
     "operationId": "ikx_post_by_domain_by_domain_id_dns_record",
     "parameters": [
      {
@@ -23243,7 +23243,7 @@
      },
      "required": true
     },
-    "description": "Répond 201 avec l'id (entier) de l'enregistrement. Équivalent documenté : POST /2/zones/{zone}/records (zone = fqdn ; même id de zone que le domaine)."
+    "description": "Returns 201 with the record id (integer). Documented equivalent: POST /2/zones/{zone}/records (zone = fqdn; same zone id as the domain)."
    }
   },
   "/domain/{domain_id}/dns/record/{record_id}": {
@@ -23251,7 +23251,7 @@
     "tags": [
      "Domain & Zone > Domain (API manager)"
     ],
-    "summary": "Supprimer un enregistrement DNS",
+    "summary": "Delete a DNS record",
     "operationId": "ikx_delete_by_domain_by_domain_id_dns_by_record_by_record_id",
     "parameters": [
      {
@@ -23327,7 +23327,7 @@
     "tags": [
      "Domain & Zone > Domain (API manager)"
     ],
-    "summary": "Lire un enregistrement DNS",
+    "summary": "Get a DNS record",
     "operationId": "ikx_get_by_domain_by_domain_id_dns_by_record_by_record_id",
     "parameters": [
      {
@@ -23458,7 +23458,7 @@
     "tags": [
      "Domain & Zone > Domain (API manager)"
     ],
-    "summary": "Remplacer un enregistrement DNS",
+    "summary": "Replace a DNS record",
     "operationId": "ikx_put_by_domain_by_domain_id_dns_by_record_by_record_id",
     "parameters": [
      {
@@ -23557,7 +23557,7 @@
      },
      "required": true
     },
-    "description": "target et ttl requis (remplacement). Répond data=true. L'API /2/zones accepte, elle, une mise à jour partielle et renvoie l'objet."
+    "description": "target and ttl required (replacement). Returns data=true. The /2/zones API accepts partial updates and returns the object."
    }
   },
   "/domain/{domain_id}/dns/zone": {
@@ -24508,7 +24508,7 @@
     "tags": [
      "Invoicing & Payments"
     ],
-    "summary": "Devise, pays et taux de TVA par service",
+    "summary": "Currency, country and VAT rate per service",
     "operationId": "ikx_get_invoicing_by_account_id_settings",
     "parameters": [
      {
@@ -24974,7 +24974,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Paniers d'un compte",
+    "summary": "Carts of an account",
     "operationId": "ikx_get_order_cart_2",
     "parameters": [
      {
@@ -25173,7 +25173,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Créer un panier",
+    "summary": "Create a cart",
     "operationId": "ikx_post_order_cart",
     "parameters": [],
     "responses": {
@@ -25489,7 +25489,7 @@
       }
      }
     },
-    "description": "Corps {account_id} : compte pour lequel commander (un compte client accessible : validation_rule_access_to_account). Sans corps : panier anonyme. Réponse : setup.uuid, setup.payment_account_id, navigation.current_step=1."
+    "description": "Body {account_id}: account to order for (an accessible customer account: validation_rule_access_to_account). Without a body: anonymous cart. Response: setup.uuid, setup.payment_account_id, navigation.current_step=1."
    }
   },
   "/order/cart/{cart_uuid}": {
@@ -25497,7 +25497,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Supprimer un panier",
+    "summary": "Delete a cart",
     "operationId": "ikx_delete_order_by_cart_by_cart_uuid",
     "parameters": [
      {
@@ -25762,7 +25762,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Faire avancer le workflow du panier",
+    "summary": "Move the cart workflow forward",
     "operationId": "ikx_put_order_by_cart_by_cart_uuid",
     "parameters": [
      {
@@ -25791,7 +25791,7 @@
      "host": "api.infomaniak.com",
      "observations": 0
     },
-    "description": "Corps {current_step}. Le passage à l'étape de paiement crée la commande (setup.order_id) : NE PAS appeler sans accord explicite.",
+    "description": "Body {current_step}. Reaching the payment step creates the order (setup.order_id): DO NOT call without explicit consent.",
     "x-ik-dangerous": true
    }
   },
@@ -25800,7 +25800,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Conditions particulières à présenter avant validation",
+    "summary": "Specific terms to show before checkout",
     "operationId": "ikx_get_order_by_cart_by_cart_uuid_checkout",
     "parameters": [
      {
@@ -25889,13 +25889,13 @@
       "source": "observed"
      }
     },
-    "description": "data.valid et data.cgus [{title, description HTML}]. Lecture sans effet."
+    "description": "data.valid and data.cgus [{title, HTML description}]. Read-only."
    },
    "post": {
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Valider le panier : CRÉE LA COMMANDE",
+    "summary": "Check out the cart: CREATES THE ORDER",
     "operationId": "ikx_post_order_by_cart_by_cart_uuid_checkout",
     "parameters": [
      {
@@ -25991,7 +25991,7 @@
       }
      }
     },
-    "description": "Vérifié le 2026-11-08 (commande Public Cloud StackOps autorisée) : crée immédiatement la commande, QUEL QUE SOIT LE CORPS (aucun champ d'acceptation des CGU requis) → {data: {order_id}}. Le panier passe en status awaiting_payment. Le paiement (pré-autorisation, carte) se fait ensuite dans la session shop.infomaniak.com (routes payment/*, absentes de l'API au token) ; tant qu'il n'est pas fait, le produit n'est pas créé. Un MCP DOIT demander une confirmation explicite avant cet appel et afficher les CGU (GET .../checkout → cgus).",
+    "description": "Checked on 2026-11-08 with an authorised Public Cloud order: creates the order immediately, WHATEVER THE BODY (no terms-acceptance field required) → {data: {order_id}}. The cart goes to status awaiting_payment. Payment (pre-authorisation, card) then happens in the shop.infomaniak.com session (payment/* routes, not available with a token); until it is done, the product is not created. An MCP client MUST ask for explicit confirmation before this call and show the terms (GET .../checkout → cgus).",
     "x-ik-dangerous": true
    }
   },
@@ -26340,7 +26340,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Retirer un article du panier",
+    "summary": "Remove an item from the cart",
     "operationId": "ikx_delete_order_by_cart_by_cart_uuid_by_item_by_item",
     "parameters": [
      {
@@ -26693,7 +26693,7 @@
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Configuration/prix d'un produit à commander",
+    "summary": "Configuration and price of a product to order",
     "operationId": "ikx_get_order_by_cart_by_cart_uuid_by_item_by_item",
     "parameters": [
      {
@@ -26843,13 +26843,13 @@
       "source": "observed"
      }
     },
-    "description": "product_type ex. public_cloud, ksuite, email_hosting, drive, domain. Réponse : service, type (create), pre_authorization_amount, validators. Paramètre item : type de produit (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) pour GET/POST, identifiant d'article (setup.id) pour PUT/DELETE."
+    "description": "product_type e.g. public_cloud, ksuite, email_hosting, drive, domain. Response: service, type (create), pre_authorization_amount, validators. item parameter: product type (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) for GET/POST, item id (setup.id) for PUT/DELETE."
    },
    "post": {
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Ajouter un produit au panier",
+    "summary": "Add a product to the cart",
     "operationId": "ikx_post_order_by_cart_by_cart_uuid_by_item_by_item",
     "parameters": [
      {
@@ -27702,13 +27702,13 @@
       }
      }
     },
-    "description": "Ajoute un article en statut draft. Public Cloud : corps {} puis PUT de l'article avec customer_name ; total 0 (facturation à l'usage), pré-autorisation 20. Paramètre item : type de produit (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) pour GET/POST, identifiant d'article (setup.id) pour PUT/DELETE."
+    "description": "Adds an item in draft status. Public Cloud: body {} then PUT the item with customer_name; total 0 (pay as you go), pre-authorisation 20. item parameter: product type (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) for GET/POST, item id (setup.id) for PUT/DELETE."
    },
    "put": {
     "tags": [
      "Orders > Cart"
     ],
-    "summary": "Configurer un article (attributs)",
+    "summary": "Configure an item (attributes)",
     "operationId": "ikx_put_order_by_cart_by_cart_uuid_by_item_by_item",
     "parameters": [
      {
@@ -28665,7 +28665,7 @@
       }
      }
     },
-    "description": "Corps = attributs (ex. {customer_name}). L'article passe en status valid quand validation.errors est vide. Paramètre item : type de produit (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) pour GET/POST, identifiant d'article (setup.id) pour PUT/DELETE."
+    "description": "Body = attributes (e.g. {customer_name}). The item goes to status valid once validation.errors is empty. item parameter: product type (public_cloud, ksuite, email_hosting, drive, item_option, domains_options_prices…) for GET/POST, item id (setup.id) for PUT/DELETE."
    }
   },
   "/order/cart/{cart_uuid}/item/{item}/item_option": {
@@ -28896,7 +28896,7 @@
      },
      "certificate_pem": {
       "type": "string",
-      "description": "Requis pour custom"
+      "description": "Required for custom"
      },
      "private_key_pem": {
       "type": "string"
@@ -28939,7 +28939,7 @@
    },
    "AsyncDelayed": {
     "type": "object",
-    "description": "Opération asynchrone : suivre GET /1/async/tasks/{task_uuid} jusqu'à finished_at non nul ; status passe de spooled à executed, le résultat est dans response (ex. {result, data: <id créé>}).",
+    "description": "Asynchronous operation: follow GET /1/async/tasks/{task_uuid} until finished_at is set; status goes from spooled to executed and the result is in response (e.g. {result, data: <created id>}).",
     "properties": {
      "result": {
       "const": "delayed"
@@ -28998,7 +28998,7 @@
      },
      "host": {
       "type": "string",
-      "description": "IP/hôte, ou * pour toutes"
+      "description": "IP/host, or * for all"
      },
      "port": {
       "type": "integer"
@@ -29012,7 +29012,7 @@
      },
      "information": {
       "type": "string",
-      "description": "Description de la règle"
+      "description": "Rule description"
      }
     }
    },
@@ -29039,7 +29039,7 @@
      },
      "source": {
       "type": "string",
-      "description": "Sous-domaine relatif ('.' ou vide pour l'apex)",
+      "description": "Relative subdomain ('.' or empty for the apex)",
       "example": "www"
      },
      "target": {
@@ -29060,7 +29060,7 @@
    },
    "AsyncProgress": {
     "type": "object",
-    "description": "Opération asynchrone. Aucun endpoint REST de suivi n'a été trouvé (le manager suit via websocket) : sonder la ressource (ex. GET /sites, champ has_operation_in_progress) jusqu'à la fin.",
+    "description": "Asynchronous operation. No REST tracking endpoint was found (the manager follows it over a websocket): poll the resource (e.g. GET /sites, has_operation_in_progress field) until it is done.",
     "properties": {
      "result": {
       "const": "success"
@@ -29419,7 +29419,7 @@
    },
    "WebCronBody": {
     "type": "object",
-    "description": "Corps complet d'un cron. Utilisé tel quel en POST et en PATCH : le PATCH est un remplacement, il exige tous les champs.",
+    "description": "Full cron body. Used as is for POST and PATCH: the PATCH is a replacement and requires every field.",
     "required": [
      "name",
      "is_enabled",
@@ -29453,7 +29453,7 @@
      },
      "fqdn": {
       "type": "string",
-      "description": "Domaine d'un site de cet hébergement (sinon 400 invalid_fqdn)."
+      "description": "Domain of a site of this hosting (400 invalid_fqdn otherwise)."
      },
      "cron_minutes": {
       "type": "array",
