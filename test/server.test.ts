@@ -107,8 +107,8 @@ describe("mcp tools", () => {
       arguments: { path: "/api/v4/users/me", kchat_team: "evil.com/x" },
     });
     expect(bad.isError).toBe(true);
-    await client.callTool({ name: "infomaniak_get", arguments: { path: "/api/v4/users/me", kchat_team: "stackops" } });
-    expect(calls.map((c) => c.url)).toEqual(["https://stackops.kchat.infomaniak.com/api/v4/users/me"]);
+    await client.callTool({ name: "infomaniak_get", arguments: { path: "/api/v4/users/me", kchat_team: "acme" } });
+    expect(calls.map((c) => c.url)).toEqual(["https://acme.kchat.infomaniak.com/api/v4/users/me"]);
   });
 
   it("flags API errors", async () => {

@@ -49,7 +49,7 @@ beforeAll(async () => {
     fetch: fakeInfomaniak,
     authorizeLogin: (id) => store.checkOAuthLogin(id),
   });
-  shared = store.createConnection({ name: "StackOps", token: "shared-token" }).id;
+  shared = store.createConnection({ name: "Acme", token: "shared-token" }).id;
   const app = createHttpApp(config, Catalog.load(), new InfomaniakClient({ fetch: fakeInfomaniak }), { oauth: provider, store });
   server = app.listen(PORT, "localhost");
   await new Promise((r) => server.once("listening", r));
@@ -119,22 +119,22 @@ async function connectionChoices(token: string): Promise<string[] | undefined> {
   return get.inputSchema.properties.connection?.enum;
 }
 
-const KEVIN: Record<string, unknown> = { sub: "1001", email: "kevin@stackops.ch", email_verified: true, name: "Kevin" };
+const JANE: Record<string, unknown> = { sub: "1001", email: "jane@example.com", email_verified: true, name: "Jane" };
 
 describe("OAuth users and the admin's rules", () => {
   it("gives users matching no rule their personal login only (default policy)", async () => {
-    const { accessToken } = await signIn(KEVIN);
+    const { accessToken } = await signIn(JANE);
     expect(await connectionChoices(accessToken!)).toBeUndefined();
     await mcp(accessToken!, "tools/call", { name: "infomaniak_get", arguments: { path: "/1/products" } });
     expect(apiAuth.at(-1)).toMatch(/^Bearer personal-/);
     const seen = store.listOAuthIdentities().find((i) => i.sub === "1001");
-    expect(seen).toMatchObject({ email: "kevin@stackops.ch", emailVerified: true, ruleId: null });
+    expect(seen).toMatchObject({ email: "jane@example.com", emailVerified: true, ruleId: null });
   });
 
   it("grants shared connections to a domain, alongside the personal login", async () => {
-    store.createOAuthRule({ name: "StackOps team", matchType: "domain", matchValue: "@StackOps.ch", connectionIds: [shared], defaultConnectionId: shared });
-    const { accessToken } = await signIn(KEVIN);
-    expect(await connectionChoices(accessToken!)).toEqual(["StackOps", "Personal"]);
+    store.createOAuthRule({ name: "Support team", matchType: "domain", matchValue: "@Example.com", connectionIds: [shared], defaultConnectionId: shared });
+    const { accessToken } = await signIn(JANE);
+    expect(await connectionChoices(accessToken!)).toEqual(["Acme", "Personal"]);
 
     await mcp(accessToken!, "tools/call", { name: "infomaniak_get", arguments: { path: "/1/products" } });
     expect(apiAuth.at(-1)).toBe("Bearer shared-token");
@@ -144,15 +144,15 @@ describe("OAuth users and the admin's rules", () => {
 
   it("applies the rule's restrictions and is re-evaluated on every request", async () => {
     const rule = store.createOAuthRule({
-      name: "Kevin",
+      name: "Jane",
       matchType: "email",
-      matchValue: "kevin@stackops.ch",
+      matchValue: "jane@example.com",
       connectionIds: [shared],
       includePersonal: false,
       readOnly: true,
       categories: ["Domain & Zone"],
     });
-    const { accessToken } = await signIn(KEVIN);
+    const { accessToken } = await signIn(JANE);
     const tools = (await (await mcp(accessToken!, "tools/list")).json()).result.tools.map((t: { name: string }) => t.name);
     expect(tools).not.toContain("infomaniak_request");
     const drive = await (await mcp(accessToken!, "tools/call", { name: "infomaniak_get", arguments: { path: "/2/drive/1/files" } })).json();
@@ -177,9 +177,9 @@ describe("OAuth users and the admin's rules", () => {
   });
 
   it("never matches e-mail rules on unverified addresses", async () => {
-    store.createOAuthRule({ name: "Team", matchType: "domain", matchValue: "stackops.ch", connectionIds: [shared], defaultConnectionId: shared });
+    store.createOAuthRule({ name: "Team", matchType: "domain", matchValue: "example.com", connectionIds: [shared], defaultConnectionId: shared });
     store.setOAuthDefaultPolicy("deny");
-    const spoofed = await signIn({ sub: "3003", email: "intruder@stackops.ch", email_verified: false });
+    const spoofed = await signIn({ sub: "3003", email: "intruder@example.com", email_verified: false });
     expect(spoofed.error).toBe("access_denied");
   });
 });
@@ -198,12 +198,12 @@ describe("rule validation", () => {
   });
 
   it("matches user id before e-mail before domain", () => {
-    const domain = store.createOAuthRule({ name: "Domain", matchType: "domain", matchValue: "stackops.ch", includePersonal: true });
-    const email = store.createOAuthRule({ name: "Email", matchType: "email", matchValue: "kevin@stackops.ch", includePersonal: true });
+    const domain = store.createOAuthRule({ name: "Domain", matchType: "domain", matchValue: "example.com", includePersonal: true });
+    const email = store.createOAuthRule({ name: "Email", matchType: "email", matchValue: "jane@example.com", includePersonal: true });
     const user = store.createOAuthRule({ name: "User", matchType: "user", matchValue: "1001", includePersonal: true });
-    const kevin: OAuthIdentity = { sub: "1001", email: "kevin@stackops.ch", emailVerified: true };
-    expect(store.matchOAuthRule(kevin)?.id).toBe(user.id);
-    expect(store.matchOAuthRule({ ...kevin, sub: "x" })?.id).toBe(email.id);
-    expect(store.matchOAuthRule({ ...kevin, sub: "x", email: "anna@stackops.ch" })?.id).toBe(domain.id);
+    const jane: OAuthIdentity = { sub: "1001", email: "jane@example.com", emailVerified: true };
+    expect(store.matchOAuthRule(jane)?.id).toBe(user.id);
+    expect(store.matchOAuthRule({ ...jane, sub: "x" })?.id).toBe(email.id);
+    expect(store.matchOAuthRule({ ...jane, sub: "x", email: "anna@example.com" })?.id).toBe(domain.id);
   });
 });

@@ -2,6 +2,9 @@
 
 # infomaniak-mcp-server
 
+> **Unofficial project**, not affiliated with or endorsed by Infomaniak. "Infomaniak" is a trademark of Infomaniak
+> Network SA. Part of the catalog relies on undocumented API operations that may change or break without notice.
+
 Remote [Model Context Protocol](https://modelcontextprotocol.io) server that exposes the **whole Infomaniak API**
 (~1600 operations: domains & DNS, kDrive, Mail, kSuite, kChat, Public Cloud, Swiss Backup, streaming, VOD, newsletters…)
 over Streamable HTTP.
@@ -124,7 +127,7 @@ See [.env.example](.env.example) for every setting.
 
 By default, someone who signs in with Infomaniak acts with **their own login only**. The **OAuth access** page of the
 admin portal grants more, through rules matching the signed-in user by Infomaniak user id, e-mail address or e-mail
-domain (e.g. everyone `@stackops.ch`). A rule grants shared connections (one default), optionally the user's own
+domain (e.g. everyone `@example.com`). A rule grants shared connections (one default), optionally the user's own
 login (shown to the assistant as the `Personal` connection), read-only mode and allowed categories — the same
 multi-organisation behaviour as managed tokens, for claude.ai and other OAuth clients.
 
@@ -194,3 +197,7 @@ npm run dev        # watch mode
 npm test           # vitest
 npm run catalog    # refresh src/catalog.json from the live OpenAPI spec
 ```
+
+## License
+
+[MIT](LICENSE)

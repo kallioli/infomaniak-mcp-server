@@ -21,7 +21,7 @@ const fakeFetch = (async (url: string | URL, init?: RequestInit) => {
   const auth = (init?.headers as Record<string, string>).Authorization;
   apiCalls.push({ url: String(url), auth });
   if (auth === "Bearer bad-token") return Response.json({ result: "error", error: { code: "not_authorized" } }, { status: 401 });
-  return Response.json({ result: "success", data: { display_name: "Kevin" } });
+  return Response.json({ result: "success", data: { display_name: "Jane" } });
 }) as typeof fetch;
 const client = new InfomaniakClient({ fetch: fakeFetch });
 const config = loadConfig({ HOST: "127.0.0.1", DATA_DIR: dir });
@@ -115,7 +115,7 @@ describe("admin api", () => {
     expect(JSON.stringify(created)).not.toContain("good-token");
     const tested = await (await call("POST", `/connections/${created.id}/test`)).json();
     expect(tested.lastCheck.ok).toBe(true);
-    expect(tested.lastCheck.detail).toMatch(/^Authenticated as Kevin · /);
+    expect(tested.lastCheck.detail).toMatch(/^Authenticated as Jane · /);
 
     const bad = await (await call("POST", "/connections", { name: "Broken", token: "bad-token" })).json();
     expect((await (await call("POST", `/connections/${bad.id}/test`)).json()).lastCheck.ok).toBe(false);
@@ -196,7 +196,7 @@ describe("admin api", () => {
     const created = await call("POST", "/oauth/rules", {
       name: "Team",
       matchType: "domain",
-      matchValue: "@stackops.ch",
+      matchValue: "@example.com",
       connectionIds: [connection.id],
       defaultConnectionId: connection.id,
       includePersonal: true,
@@ -204,7 +204,7 @@ describe("admin api", () => {
     });
     expect(created.status).toBe(201);
     const rule = await created.json();
-    expect(rule).toMatchObject({ matchValue: "stackops.ch", connections: [{ id: connection.id, name: connection.name }] });
+    expect(rule).toMatchObject({ matchValue: "example.com", connections: [{ id: connection.id, name: connection.name }] });
 
     expect((await call("PATCH", `/oauth/rules/${rule.id}`, { enabled: false })).status).toBe(200);
     expect((await call("POST", "/oauth/rules", { name: "Bad", matchType: "email", matchValue: "nope" })).status).toBe(400);

@@ -4,3 +4,5 @@ dist/
 *.log
 .cache/
 data/
+CLAUDE.md
+.claude/

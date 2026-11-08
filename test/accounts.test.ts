@@ -17,7 +17,7 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 const ORGANISATIONS: Record<string, { id: number; name: string }[]> = {
   "Bearer prod-token": [
-    { id: 111, name: "StackOps Sàrl" },
+    { id: 111, name: "Acme SA" },
     { id: 222, name: "Client ACME" },
   ],
   "Bearer client-token": [
@@ -58,7 +58,7 @@ describe("multiple connections and organisations", () => {
     expect(props.connection.enum).toEqual(["Prod", "Client B"]);
     expect(props.connection.description).toContain('Default: "Prod"');
     expect(props.account.description).toContain('Client ACME (222, connection "Prod")');
-    expect(props.account.description).toContain('StackOps Sàrl (111, connection "Prod", default)');
+    expect(props.account.description).toContain('Acme SA (111, connection "Prod", default)');
 
     // A single connection needs no selector.
     const single = await setup([PROD]);
@@ -70,7 +70,7 @@ describe("multiple connections and organisations", () => {
     const { client } = await setup([PROD, CLIENT_B]);
     const text = textOf(await client.callTool({ name: "infomaniak_list_accounts", arguments: {} }));
     expect(text).toContain('Connection "Prod" (default, read/write)');
-    expect(text).toContain("StackOps Sàrl — account 111 (default)");
+    expect(text).toContain("Acme SA — account 111 (default)");
     expect(text).toContain('Connection "Client B" (read-only)');
     expect(text).toContain("Client B SA — account 333");
   });
@@ -145,7 +145,7 @@ describe("store", () => {
     const client = store.createConnection({ name: "Client B", token: "client-token", readOnly: true });
 
     expect(() => store.createToken({ name: "x", defaultConnectionId: prod.id, connectionIds: [client.id] })).toThrow(/default connection/);
-    const { token, secret } = store.createToken({ name: "Kevin", defaultConnectionId: client.id, connectionIds: [prod.id, client.id] });
+    const { token, secret } = store.createToken({ name: "Jane", defaultConnectionId: client.id, connectionIds: [prod.id, client.id] });
     expect(token.connectionIds).toEqual([client.id, prod.id]);
 
     const grant = store.authenticateToken(secret, "127.0.0.1");
