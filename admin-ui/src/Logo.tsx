@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-/** Infomaniak MCP Server mark: a lowercase "k" drawn as a connector, with an AI spark. Same as public/favicon.svg. */
+/** Infomaniak MCP Server mark: a lowercase "k" drawn as a connector, with an AI spark. Same as assets/favicon.svg. */
 export function Logo({ size = 34, className }: { size?: number; className?: string }) {
   const gradient = useId();
   return (

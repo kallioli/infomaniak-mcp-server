@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, Icon } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { type Catalog, type HttpMethod, type Operation, isDangerous } from "./catalog.js";
 import type { InfomaniakClient } from "./infomaniak.js";
@@ -28,6 +28,8 @@ export interface ServerOptions {
    * the tool schemas and organisations can be named instead of given by id.
    */
   organisations?: Map<string, Organisation[] | string>;
+  /** Logo shown by clients next to the server (MCP Implementation.icons). */
+  icons?: Icon[];
 }
 
 /** At most this many organisations are spelled out in a tool schema; the rest are reachable by name or id. */
@@ -155,7 +157,7 @@ export function createServer(options: ServerOptions): McpServer {
     };
   }
   const server = new McpServer(
-    { name: "infomaniak-mcp-server", version: VERSION },
+    { name: "infomaniak-mcp-server", version: VERSION, ...(options.icons?.length ? { icons: options.icons } : {}) },
     {
       instructions: [
         "Gives access to the whole Infomaniak API (domains, DNS, hosting, kDrive, mail, kSuite, Public Cloud, streaming, etc.).",

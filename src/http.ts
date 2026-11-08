@@ -5,6 +5,7 @@ import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { Catalog, SENSITIVE_CATEGORIES } from "./catalog.js";
 import type { Config } from "./config.js";
+import { homePage, iconRoutes, serverIcons } from "./icons.js";
 import type { InfomaniakClient } from "./infomaniak.js";
 import { dynamicTrustProxy } from "./trust-proxy.js";
 import { ACCESS_TOKEN_PREFIX, type InfomaniakOAuthProvider } from "./oauth/provider.js";
@@ -70,6 +71,8 @@ export function createHttpApp(
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", operations: catalog.operations.length, catalog: catalog.generatedAt });
   });
+  for (const [path, handler] of Object.entries(iconRoutes())) app.get(path, handler);
+  app.get("/", homePage);
 
   // The OAuth endpoints follow the current settings: the router is rebuilt whenever the provider changes, so
   // OAuth can be switched on, off or reconfigured from the admin portal without restart.
@@ -133,7 +136,7 @@ export function createHttpApp(
 
   app.post("/mcp", async (req: Request, res: Response) => {
     let connections: ConnectionContext[];
-    const { readOnly: globalReadOnly, maxResponseChars } = current();
+    const { readOnly: globalReadOnly, maxResponseChars, publicUrl } = current();
     const provider = currentOAuth()?.provider;
     let readOnly = globalReadOnly;
     let tokenCategories: string[] | null = null;
@@ -193,6 +196,7 @@ export function createHttpApp(
       organisations: await loadOrganisations(client, connections),
       readOnly,
       maxResponseChars,
+      icons: serverIcons(publicUrl?.origin ?? `${req.protocol}://${req.get("host")}`),
     });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
