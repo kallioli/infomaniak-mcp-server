@@ -21,6 +21,12 @@ export interface Operation {
   summary: string;
   description?: string;
   deprecated?: boolean;
+  /** Not in the official spec (discovered by ik-api-explore). */
+  undocumented?: boolean;
+  /** Explicitly flagged as dangerous (orders, transfers…); see isDangerous for the full rule. */
+  dangerous?: boolean;
+  /** false for undocumented operations only seen in the manager, never executed with an API token. */
+  verified?: boolean;
   scopes?: string[];
   params: OperationParam[];
   body?: { contentType: string; required?: boolean; schema: unknown };
@@ -32,6 +38,19 @@ interface CatalogFile {
   generatedAt: string;
   operations: Operation[];
   schemas: Record<string, unknown>;
+}
+
+/** Categories disabled by default the first time they appear: they can place orders or touch billing. */
+export const SENSITIVE_CATEGORIES = ["Orders", "Invoicing & Payments"];
+
+/**
+ * Operations requiring an explicit confirmation: those flagged dangerous, every DELETE, and restores, checkouts and
+ * transfers, whether documented or not.
+ */
+export function isDangerous(op: Operation): boolean {
+  if (op.dangerous) return true;
+  if (op.method === "GET") return false;
+  return op.method === "DELETE" || /(^|\/)(restore|restore_backups|checkout|transfer)(\/|$)/.test(op.path);
 }
 
 export interface SearchOptions {

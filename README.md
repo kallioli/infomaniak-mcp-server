@@ -20,6 +20,20 @@ Instead of one tool per endpoint, the server ships a compiled catalog of the off
 
 Calls are validated against the catalog, so only documented endpoints can be reached.
 
+### Undocumented endpoints (ik-api-explore)
+
+`npm run catalog` also merges `spec/infomaniak-extensions.openapi.json`: operations the Infomaniak manager performs
+with API tokens but the official spec omits (web hosting, `/domain` DNS API, orders and cart, invoicing, account users
+and permissions…), corrections of official operations and missing parameters. `infomaniak_describe_operation` shows
+them as `undocumented: true`, and `verified: false` for those never executed with a token. The **Orders** and
+**Invoicing & Payments** categories are disabled by default. Details: [docs/ik-extensions.md](docs/ik-extensions.md).
+
+### Confirmation of risky operations
+
+Every `DELETE`, restore, checkout and transfer, and the operations flagged dangerous, need the user's explicit
+confirmation: `infomaniak_request` asks the user through MCP elicitation when the client supports it; otherwise it
+refuses the call unless the assistant passes `confirm: true` after confirming with the user.
+
 ### Multiple organisations and accounts
 
 Works like the multi-server mode of initMAX's Zabbix MCP server, with two levels, chosen **per call** (the server

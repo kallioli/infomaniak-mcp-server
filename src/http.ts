@@ -3,7 +3,7 @@ import type { Request, RequestHandler, Response } from "express";
 import { getOAuthProtectedResourceMetadataUrl, mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { Catalog } from "./catalog.js";
+import { Catalog, SENSITIVE_CATEGORIES } from "./catalog.js";
 import type { Config } from "./config.js";
 import type { InfomaniakClient } from "./infomaniak.js";
 import { dynamicTrustProxy } from "./trust-proxy.js";
@@ -60,6 +60,10 @@ export function createHttpApp(
   { oauth, store, settings }: HttpAppOptions = {},
 ) {
   const app = createMcpExpressApp({ host: config.host, allowedHosts: config.allowedHosts });
+  store?.syncCategories(
+    catalog.categories().map((c) => c.name),
+    SENSITIVE_CATEGORIES,
+  );
   const current = settings ?? (() => ({ ...config }) satisfies EffectiveSettings);
   app.use(dynamicTrustProxy(app, () => current().trustProxy));
 

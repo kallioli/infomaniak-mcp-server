@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import type { Catalog, HttpMethod, Operation } from "./catalog.js";
+import { type Catalog, type HttpMethod, type Operation, isDangerous } from "./catalog.js";
 import type { InfomaniakClient } from "./infomaniak.js";
 import { type Organisation, loadOrganisations } from "./organisations.js";
 import { VERSION } from "./version.js";
@@ -164,10 +164,48 @@ export function createServer(options: ServerOptions): McpServer {
         "Most resources are scoped by an organisation (account) or product id: call infomaniak_list_accounts first to see the",
         "connections and organisations you can act on, then pass `account` (name or id) and, if needed, `connection` to switch between them.",
         "Responses are wrapped as {result, data}; list endpoints paginate with `page` and `per_page`.",
-        "Web hosting and VPS management are not part of Infomaniak's public API; GET /1/products still lists those products.",
+        "Operations marked undocumented (web hosting, /domain DNS API, orders, invoicing…) come from the Infomaniak manager,",
+        "not from the official spec: they work with API tokens but may change; those with verified: false were never executed.",
+        "Deletions, restores, orders and transfers need the user's explicit confirmation.",
       ].join(" "),
     },
   );
+
+  /**
+   * Asks for confirmation of a dangerous call. When the client supports elicitation, the user is asked directly and
+   * `confirm` is not enough; otherwise the assistant must have confirmed with the user and pass confirm: true.
+   */
+  async function confirmDangerous(
+    op: Operation,
+    method: HttpMethod,
+    path: string,
+    connectionName: string,
+    confirm: boolean | undefined,
+  ): Promise<CallToolResult | undefined> {
+    const what = `${method} ${path}${op.summary ? ` (${op.summary})` : ""}${multiple ? ` with connection "${connectionName}"` : ""}`;
+    if (server.server.getClientCapabilities()?.elicitation) {
+      try {
+        const answer = await server.server.elicitInput({
+          message: `Confirm this Infomaniak action, which may be irreversible or billed: ${what}`,
+          requestedSchema: {
+            type: "object",
+            properties: { confirm: { type: "boolean", title: "Confirm", description: "Run this action" } },
+            required: ["confirm"],
+          },
+        });
+        if (answer.action === "accept" && answer.content?.confirm === true) return undefined;
+        return text(`Cancelled: the user did not confirm ${what}.`, true);
+      } catch (err) {
+        return text(`Could not ask the user to confirm ${what}: ${(err as Error).message}`, true);
+      }
+    }
+    if (confirm === true) return undefined;
+    return text(
+      `${op.id} needs an explicit confirmation (irreversible or billed action). Describe its exact effect to the user, ` +
+        "get their confirmation, then retry with confirm: true.",
+      true,
+    );
+  }
 
   async function execute(
     method: HttpMethod,
@@ -175,7 +213,7 @@ export function createServer(options: ServerOptions): McpServer {
     pathParams: Record<string, string | number> | undefined,
     query: Record<string, unknown> | undefined,
     body: unknown,
-    target: { kchatTeam?: string; connection?: string; account?: string | number } = {},
+    target: { kchatTeam?: string; connection?: string; account?: string | number; confirm?: boolean } = {},
   ): Promise<CallToolResult> {
     const resolved = resolveTarget(target.connection, target.account);
     if ("error" in resolved) return text(resolved.error, true);
@@ -216,6 +254,11 @@ export function createServer(options: ServerOptions): McpServer {
     }
     if (body !== undefined && op.body && op.body.contentType !== "application/json") {
       return text(`${op.id} expects a ${op.body.contentType} body, which this server does not support yet.`, true);
+    }
+    // Checked here, once the path is normalised and resolved, so no spelling of the path can skip it.
+    if (isDangerous(op)) {
+      const refusal = await confirmDangerous(op, method, path, connection.name, target.confirm);
+      if (refusal) return refusal;
     }
 
     let baseUrl: string | undefined;
@@ -335,6 +378,9 @@ export function createServer(options: ServerOptions): McpServer {
         summary: op.summary,
         description: op.description,
         deprecated: op.deprecated,
+        undocumented: op.undocumented,
+        ...(op.verified === false ? { verified: false, note: "Seen in the manager but never executed with an API token: body and response are not documented." } : {}),
+        needsConfirmation: isDangerous(op),
         scopes: op.scopes,
         parameters: op.params,
         body: op.body && { ...op.body, schema: catalog.resolveSchema(op.body.schema) },
@@ -380,14 +426,20 @@ export function createServer(options: ServerOptions): McpServer {
           path_params: pathParamsShape,
           query: queryShape,
           body: z.unknown().optional().describe("JSON request body, as described by infomaniak_describe_operation."),
+          confirm: z
+            .boolean()
+            .optional()
+            .describe(
+              "Set to true only after the user explicitly confirmed, for operations needing confirmation (deletions, restores, orders…; see needsConfirmation in infomaniak_describe_operation).",
+            ),
           account: accountShape,
           ...(connectionShape ? { connection: connectionShape } : {}),
           kchat_team: kchatTeamShape,
         },
         annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       },
-      async ({ method, path, path_params, query, body, account, connection, kchat_team }) =>
-        execute(method, path, path_params, query, body, { connection, account, kchatTeam: kchat_team }),
+      async ({ method, path, path_params, query, body, confirm, account, connection, kchat_team }) =>
+        execute(method, path, path_params, query, body, { connection, account, kchatTeam: kchat_team, confirm }),
     );
   }
 

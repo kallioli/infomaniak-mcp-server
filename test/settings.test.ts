@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { createAdminApp } from "../src/admin/app.js";
-import { Catalog } from "../src/catalog.js";
+import { Catalog, SENSITIVE_CATEGORIES } from "../src/catalog.js";
 import { loadConfig } from "../src/config.js";
 import { createHttpApp } from "../src/http.js";
 import { InfomaniakClient } from "../src/infomaniak.js";
@@ -72,6 +72,27 @@ describe("settings", () => {
     expect(() => settings.update({ readOnly: true, maxResponseChars: 10 })).toThrow(/between/);
     expect(settings.values().readOnly).toBe(false);
     expect(() => settings.update({ oauthScopes: ["ok", "not ok"] })).toThrow(/scope/);
+    store.close();
+  });
+});
+
+describe("sensitive categories", () => {
+  it("are disabled the first time they appear, then follow the admin's choice", () => {
+    const store = newStore();
+    store.syncCategories(["kDrive", "Orders"], SENSITIVE_CATEGORIES);
+    expect(store.disabledCategories()).toEqual(["Orders"]);
+
+    // The admin enables Orders; a later catalog brings a new sensitive category.
+    store.setDisabledCategories([]);
+    store.syncCategories(["kDrive", "Orders", "Invoicing & Payments"], SENSITIVE_CATEGORIES);
+    expect(store.disabledCategories()).toEqual(["Invoicing & Payments"]);
+    store.close();
+  });
+
+  it("are not exposed by default through the MCP endpoint", async () => {
+    const store = newStore();
+    createHttpApp(loadConfig({ HOST: "127.0.0.1" }), catalog, client, { store });
+    expect(store.disabledCategories()).toEqual([...SENSITIVE_CATEGORIES].sort());
     store.close();
   });
 });

@@ -283,6 +283,19 @@ export class Store {
     this.setSetting("disabled_categories", [...new Set(categories)].sort());
   }
 
+  /**
+   * Disables the categories listed in `disabledByDefault` the first time they show up in the catalog (also on existing
+   * databases, when a catalog update brings them); afterwards the admin's choice is kept.
+   */
+  syncCategories(all: string[], disabledByDefault: string[]): void {
+    const seen = new Set(this.getSetting<string[]>("categories_seen", []));
+    const fresh = all.filter((c) => !seen.has(c));
+    if (!fresh.length) return;
+    const toDisable = fresh.filter((c) => disabledByDefault.includes(c));
+    if (toDisable.length) this.setDisabledCategories([...this.disabledCategories(), ...toDisable]);
+    this.setSetting("categories_seen", [...seen, ...fresh].sort());
+  }
+
   // --- admin password -------------------------------------------------------
 
   hasAdminPassword(): boolean {

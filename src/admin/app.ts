@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import express, { type NextFunction, type Request, type Response } from "express";
-import type { Catalog } from "../catalog.js";
+import { type Catalog, SENSITIVE_CATEGORIES } from "../catalog.js";
 import type { Config } from "../config.js";
 import type { InfomaniakClient } from "../infomaniak.js";
 import { Sealer } from "../oauth/seal.js";
@@ -61,6 +61,10 @@ export function createAdminApp({
   const sealer = new Sealer(secretKey);
   const loginAttempts = new Map<string, { count: number; resetAt: number }>();
   let pendingSetupCode = setupCode;
+  store.syncCategories(
+    catalog.categories().map((c) => c.name),
+    SENSITIVE_CATEGORIES,
+  );
   app.use(dynamicTrustProxy(app, () => settings.effective().trustProxy));
   app.disable("x-powered-by");
   app.use(express.json({ limit: "100kb" }));

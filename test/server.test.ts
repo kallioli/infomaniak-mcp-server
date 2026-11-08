@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Catalog } from "../src/catalog.js";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Catalog, isDangerous } from "../src/catalog.js";
+import { sanitize } from "../scripts/sanitize-extensions.js";
 import { InfomaniakClient } from "../src/infomaniak.js";
 import { createServer } from "../src/server.js";
 import { createHttpApp } from "../src/http.js";
@@ -111,6 +116,80 @@ describe("mcp tools", () => {
     const res = await client.callTool({ name: "infomaniak_get", arguments: { path: "/1/products" } });
     expect(res.isError).toBe(true);
     expect(textOf(res)).toContain("HTTP 404");
+  });
+});
+
+describe("ik-api-explore extensions", () => {
+  it("includes undocumented operations under their category", () => {
+    const m = catalog.match("GET", "/1/web_hostings/123456/sites");
+    expect(m?.op.undocumented).toBe(true);
+    expect(m?.op.tag.startsWith("Web Hosting")).toBe(true);
+  });
+
+  it("keeps the official scopes of operations it corrects", () => {
+    const op = catalog.get("POST /1/public_clouds/{public_cloud_id}/projects/{public_cloud_project_id}/kaas");
+    expect(op?.scopes).toContain("public_cloud");
+  });
+
+  it("flags operations never executed with a token as unverified", () => {
+    expect(catalog.get("GET /1/order/cart")?.verified).toBe(false);
+    expect(catalog.get("GET /order/cart")?.verified).toBeUndefined();
+  });
+
+  it("contains no real domain, identifier or UUID", () => {
+    const raw = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "spec", "infomaniak-extensions.openapi.json"), "utf8");
+    const spec = JSON.parse(raw);
+    expect(sanitize(spec)).toEqual(spec);
+    expect(raw).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  });
+});
+
+describe("dangerous operations", () => {
+  const checkout = { method: "POST", path: "/order/cart/abc/checkout", body: {} };
+
+  it("needs confirm: true, whatever the spelling of the path", async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const client = await connect({ fetch: fakeFetch(calls) });
+    for (const path of ["/order/cart/abc/checkout", "order/cart/abc/checkout", "/order/cart/{cart_uuid}/checkout"]) {
+      const refused = await client.callTool({
+        name: "infomaniak_request",
+        arguments: { ...checkout, path, path_params: { cart_uuid: "abc" } },
+      });
+      expect(refused.isError).toBe(true);
+      expect(textOf(refused)).toContain("confirm: true");
+    }
+    expect(calls).toHaveLength(0);
+    await client.callTool({ name: "infomaniak_request", arguments: { ...checkout, confirm: true } });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("covers every DELETE and restores, documented or not", () => {
+    const deleteRecord = catalog.get("DELETE /2/zones/{zone}/records/{record}")!;
+    const restore = catalog.match("POST", "/1/web_hostings/1/databases/db/actions/restore")!.op;
+    const listRecords = catalog.get("GET /2/zones/{zone}/records")!;
+    expect([isDangerous(deleteRecord), isDangerous(restore), isDangerous(listRecords)]).toEqual([true, true, false]);
+  });
+
+  it("asks the user through elicitation when the client supports it", async () => {
+    for (const [answer, expected] of [
+      [{ action: "accept", content: { confirm: true } }, 1],
+      [{ action: "decline" }, 0],
+    ] as const) {
+      const calls: { url: string; init: RequestInit }[] = [];
+      const server = createServer({
+        catalog,
+        client: new InfomaniakClient({ fetch: fakeFetch(calls) }),
+        connections: [{ name: "infomaniak", token: "secret-token" }],
+      });
+      const client = new Client({ name: "test", version: "1.0.0" }, { capabilities: { elicitation: {} } });
+      client.setRequestHandler(ElicitRequestSchema, async () => answer);
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(a), client.connect(b)]);
+      // confirm: true alone is not enough when the user can be asked directly.
+      const res = await client.callTool({ name: "infomaniak_request", arguments: { ...checkout, confirm: true } });
+      expect(calls).toHaveLength(expected);
+      expect(Boolean(res.isError)).toBe(expected === 0);
+    }
   });
 });
 

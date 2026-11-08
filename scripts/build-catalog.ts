@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const SPEC_URL = "https://developer.infomaniak.com/openapi.json";
+/** Undocumented operations and corrections discovered by ik-api-explore, merged on top of the official spec. */
+const EXTENSIONS = join(dirname(fileURLToPath(import.meta.url)), "..", "spec", "infomaniak-extensions.openapi.json");
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "catalog.json");
 const METHODS = ["get", "post", "put", "patch", "delete"] as const;
 
@@ -78,8 +80,62 @@ async function loadSpec(): Promise<Json> {
   return res.json();
 }
 
+/**
+ * Merges the extensions file (default spec/infomaniak-extensions.openapi.json, or --extensions <file>):
+ * adds missing operations, replaces those flagged x-ik-replace (keeping the official scopes and tags when the
+ * replacement has none), appends x-ik-extra-parameters that are not already declared.
+ * A missing default file is fine; an unreadable or invalid one stops the build.
+ */
+async function applyExtensions(spec: Json): Promise<number> {
+  const idx = process.argv.indexOf("--extensions");
+  const file = idx > -1 ? process.argv[idx + 1] : EXTENSIONS;
+  let raw: string;
+  try {
+    raw = await readFile(file, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT" && idx === -1) return 0;
+    throw new Error(`Cannot read extensions file ${file}: ${(err as Error).message}`);
+  }
+  const ext = JSON.parse(raw);
+
+  let applied = 0;
+  for (const [path, item] of Object.entries<Json>(ext.paths ?? {})) {
+    for (const [method, op] of Object.entries<Json>(item)) {
+      const official = spec.paths[path]?.[method];
+      if (op["x-ik-extra-parameters"]) {
+        if (!official) continue;
+        const existing = Object.values<Json>(official.parameters ?? []);
+        const key = (p: Json) => `${p.in}:${p.name}`;
+        const known = new Set(existing.filter((p) => p && typeof p === "object").map(key));
+        official.parameters = [...existing, ...op["x-ik-extra-parameters"].filter((p: Json) => !known.has(key(p)))];
+        applied++;
+      } else if (op["x-ik-replace"] || !official) {
+        spec.paths[path] ??= {};
+        spec.paths[path][method] = {
+          ...op,
+          ...(official && !op["x-scopes"] && official["x-scopes"] ? { "x-scopes": official["x-scopes"] } : {}),
+          ...(official && !op.tags && official.tags ? { tags: official.tags } : {}),
+        };
+        applied++;
+      }
+    }
+  }
+
+  // Components: additions only; an official definition is never overridden.
+  spec.components ??= {};
+  for (const [kind, defs] of Object.entries<Json>(ext.components ?? {})) {
+    spec.components[kind] ??= {};
+    for (const [name, def] of Object.entries<Json>(defs)) {
+      if (spec.components[kind][name]) console.warn(`Extensions: keeping official components.${kind}.${name}`);
+      else spec.components[kind][name] = def;
+    }
+  }
+  return applied;
+}
+
 async function main() {
   const spec = await loadSpec();
+  const extended = await applyExtensions(spec);
   const sharedParams = spec.components?.parameters ?? {};
   const operations: Json[] = [];
 
@@ -142,6 +198,10 @@ async function main() {
           ? { description: cleanText(op.description, 600) }
           : {}),
         ...(op.deprecated ? { deprecated: true } : {}),
+        ...(op["x-ik-undocumented"] ? { undocumented: true } : {}),
+        ...(op["x-ik-dangerous"] ? { dangerous: true } : {}),
+        // Undocumented operations only known from the manager (never executed with a token) are flagged unverified.
+        ...(op["x-ik-undocumented"] && op["x-ik-evidence"]?.token_check?.verdict !== "token-ok" ? { verified: false } : {}),
         ...(op["x-scopes"]?.length ? { scopes: op["x-scopes"] } : {}),
         params,
         ...(body ? { body } : {}),
@@ -164,12 +224,13 @@ async function main() {
   }
 
   const catalog = {
-    source: SPEC_URL,
+    source: extended ? `${SPEC_URL} + infomaniak-extensions (${extended})` : SPEC_URL,
     generatedAt: new Date().toISOString(),
     operations,
     schemas,
   };
   await writeFile(OUT, JSON.stringify(catalog));
+  if (extended) console.log(`Merged ${extended} operations from infomaniak-extensions`);
   console.log(`Wrote ${operations.length} operations, ${Object.keys(schemas).length} schemas to ${OUT}`);
 }
 
