@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Catalog } from "../src/catalog.js";
 import { loadConfig } from "../src/config.js";
 import { createHttpApp } from "../src/http.js";
@@ -72,9 +72,8 @@ const form = (params: Record<string, string>) => ({
   body: new URLSearchParams(params),
 });
 
-/** Runs the whole OAuth dance; returns the access token, or the error the client is redirected with. */
-async function signIn(who: Record<string, unknown>): Promise<{ accessToken?: string; error?: string; description?: string }> {
-  identity = who;
+/** Registers a client and starts an authorization; returns the state Infomaniak would send back. */
+async function authorize() {
   const { client_id } = await (
     await fetch(`${BASE}/register`, {
       method: "POST",
@@ -83,7 +82,7 @@ async function signIn(who: Record<string, unknown>): Promise<{ accessToken?: str
     })
   ).json();
   const verifier = randomBytes(32).toString("base64url");
-  const authorize = await fetch(
+  const started = await fetch(
     `${BASE}/authorize?${new URLSearchParams({
       response_type: "code",
       client_id,
@@ -93,7 +92,14 @@ async function signIn(who: Record<string, unknown>): Promise<{ accessToken?: str
     })}`,
     { redirect: "manual" },
   );
-  const state = new URL(authorize.headers.get("location")!).searchParams.get("state")!;
+  const state = new URL(started.headers.get("location")!).searchParams.get("state")!;
+  return { client_id, verifier, state };
+}
+
+/** Runs the whole OAuth dance; returns the access token, or the error the client is redirected with. */
+async function signIn(who: Record<string, unknown>): Promise<{ accessToken?: string; error?: string; description?: string }> {
+  identity = who;
+  const { client_id, verifier, state } = await authorize();
   const callback = await fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(state)}`, { redirect: "manual" });
   const back = new URL(callback.headers.get("location")!);
   if (back.searchParams.get("error")) {
@@ -181,6 +187,29 @@ describe("OAuth users and the admin's rules", () => {
     store.setOAuthDefaultPolicy("deny");
     const spoofed = await signIn({ sub: "3003", email: "intruder@example.com", email_verified: false });
     expect(spoofed.error).toBe("access_denied");
+  });
+});
+
+describe("Infomaniak errors on the callback", () => {
+  it("are logged and passed on to the client", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { state } = await authorize();
+      const callback = await fetch(
+        `${BASE}/oauth/callback?${new URLSearchParams({ state, error: "invalid_scope", error_description: "Unknown scope\nfake log line" })}`,
+        { redirect: "manual" },
+      );
+      const back = new URL(callback.headers.get("location")!);
+      expect(back.searchParams.get("error")).toBe("server_error");
+      expect(back.searchParams.get("error_description")).toContain("Unknown scope");
+      const logged = warn.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(logged).toContain('"invalid_scope" "Unknown scope\\nfake log line"');
+
+      await fetch(`${BASE}/oauth/callback?state=forged&error=access_denied`);
+      expect(String(warn.mock.calls.at(-1)?.[0])).toContain("invalid or expired state");
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

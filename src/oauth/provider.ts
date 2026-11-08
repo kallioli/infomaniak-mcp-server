@@ -133,9 +133,10 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
 
   /** Express handler for GET /oauth/callback, where Infomaniak sends the user back. */
   readonly handleCallback = async (req: Request, res: Response): Promise<void> => {
-    const { code, state, error } = req.query as Record<string, string | undefined>;
+    const { code, state, error, error_description: description } = req.query as Record<string, string | undefined>;
     const pending = state ? this.sealer.open<PendingAuthorization>("pending", state) : undefined;
     if (!pending) {
+      console.warn(`OAuth callback with an invalid or expired state${error ? ` (Infomaniak error: ${quote(error)} ${quote(description)})` : ""}`);
       res.status(400).type("text/plain").send("Invalid or expired authorization request. Please start the connection again.");
       return;
     }
@@ -143,7 +144,9 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
     if (pending.state) back.searchParams.set("state", pending.state);
 
     if (error || !code) {
+      console.warn(`Infomaniak OAuth authorization failed: ${error ? `${quote(error)} ${quote(description)}` : "no code returned"}`);
       back.searchParams.set("error", error === "access_denied" ? "access_denied" : "server_error");
+      if (description) back.searchParams.set("error_description", description.slice(0, 500));
       res.redirect(302, back.href);
       return;
     }
@@ -157,6 +160,7 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
       const identity = await this.fetchIdentity(upstream.access_token);
       const refusal = this.options.authorizeLogin?.(identity);
       if (refusal) {
+        console.warn(`OAuth login refused for Infomaniak user ${quote(identity?.sub)}: ${refusal}`);
         back.searchParams.set("error", "access_denied");
         back.searchParams.set("error_description", refusal);
         res.redirect(302, back.href);
@@ -171,7 +175,7 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
       };
       back.searchParams.set("code", this.sealer.seal("code", authorizationCode, CODE_TTL));
     } catch (err) {
-      console.error("Infomaniak code exchange failed:", (err as Error).message);
+      console.error(`Infomaniak code exchange failed: ${(err as Error).message}`);
       back.searchParams.set("error", "server_error");
     }
     res.redirect(302, back.href);
@@ -203,6 +207,7 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
     try {
       upstream = await this.requestUpstream({ grant_type: "refresh_token", refresh_token: sealed.token });
     } catch (err) {
+      console.warn(`Infomaniak refresh token exchange failed: ${(err as Error).message}`);
       throw new InvalidGrantError(`Infomaniak refused the refresh token: ${(err as Error).message}`);
     }
     // Infomaniak may or may not rotate refresh tokens; keep the previous one if none is returned.
@@ -254,16 +259,23 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
         headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
         signal: AbortSignal.timeout(10_000),
       });
-      if (!res.ok) return undefined;
+      if (!res.ok) {
+        console.warn(`Infomaniak userinfo request failed: HTTP ${res.status} ${quote(await res.text().catch(() => ""))}`);
+        return undefined;
+      }
       const info = (await res.json()) as { sub?: unknown; email?: unknown; email_verified?: unknown; name?: unknown };
-      if (info.sub === undefined || info.sub === null) return undefined;
+      if (info.sub === undefined || info.sub === null) {
+        console.warn("Infomaniak userinfo response has no sub (is the openid scope granted?)");
+        return undefined;
+      }
       return {
         sub: String(info.sub),
         ...(typeof info.email === "string" ? { email: info.email } : {}),
         ...(typeof info.email_verified === "boolean" ? { emailVerified: info.email_verified } : {}),
         ...(typeof info.name === "string" ? { name: info.name } : {}),
       };
-    } catch {
+    } catch (err) {
+      console.warn(`Infomaniak userinfo request failed: ${(err as Error).message}`);
       return undefined;
     }
   }
@@ -281,8 +293,14 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
     });
     const body = (await res.json().catch(() => ({}))) as Partial<UpstreamTokens> & { error?: string; error_description?: string };
     if (!res.ok || !body.access_token) {
-      throw new ServerError(`HTTP ${res.status} ${body.error ?? ""} ${body.error_description ?? ""}`.trim());
+      throw new ServerError(`HTTP ${res.status} ${quote(body.error)} ${quote(body.error_description)}`.trim());
     }
     return { access_token: body.access_token, refresh_token: body.refresh_token, expires_in: body.expires_in };
   }
+}
+
+/** Upstream values in logs are quoted and truncated so they cannot forge log lines. */
+function quote(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "";
+  return JSON.stringify(String(value).slice(0, 300));
 }
