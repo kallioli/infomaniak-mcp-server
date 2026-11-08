@@ -1,7 +1,7 @@
 {
  "openapi": "3.1.0",
  "info": {
-  "title": "Infomaniak API — extensions ik-api-explore",
+  "title": "Infomaniak API — undocumented operations",
   "version": "1.0.0",
   "description": "To be merged on top of the official spec: missing operations are added, x-ik-replace replaces the official operation, x-ik-extra-parameters adds parameters."
  },

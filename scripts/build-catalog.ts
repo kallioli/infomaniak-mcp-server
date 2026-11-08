@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const SPEC_URL = "https://developer.infomaniak.com/openapi.json";
-/** Undocumented operations and corrections discovered by ik-api-explore, merged on top of the official spec. */
+/** Undocumented operations and corrections, merged on top of the official spec. */
 const EXTENSIONS = join(dirname(fileURLToPath(import.meta.url)), "..", "spec", "infomaniak-extensions.openapi.json");
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "catalog.json");
 const METHODS = ["get", "post", "put", "patch", "delete"] as const;

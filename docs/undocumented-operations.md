@@ -1,6 +1,6 @@
 # Undocumented Infomaniak API operations
 
-The official OpenAPI spec misses part of what the Infomaniak manager does with plain API tokens. `spec/infomaniak-extensions.openapi.json`, produced by the **ik-api-explore** tool, fills the gap and is merged on top of the official spec when the catalog is built (`npm run catalog`).
+The official OpenAPI spec misses part of what the Infomaniak manager does with plain API tokens. `spec/infomaniak-extensions.openapi.json` fills the gap and is merged on top of the official spec when the catalog is built (`npm run catalog`).
 
 Current content: **192 added operations** (116 executed successfully with an API token, 76 only seen in the manager), **10 corrected official operations** and extra parameters.
 
@@ -29,7 +29,7 @@ The **Orders** and **Invoicing & Payments** categories are disabled by default (
 
 ## Maintenance
 
-After importing a new file from ik-api-explore:
+After updating the extensions file:
 
 ```bash
 npm run extensions:sanitize   # strip real domains, identifiers and UUIDs inferred from live responses

@@ -77,7 +77,7 @@ export function createServer(options: ServerOptions): McpServer {
     return Array.isArray(value) ? value : [];
   };
 
-  // Like a Zabbix server selector: the choices this token has are spelled out in the schema itself.
+  // The choices this token has are spelled out in the schema itself, so no extra call is needed to pick one.
   const connectionShape = multiple
     ? z
         .enum(connections.map((c) => c.name) as [string, ...string[]])

@@ -1,5 +1,5 @@
 /**
- * Removes real-world data from the extensions spec produced by ik-api-explore, whose response schemas are inferred
+ * Removes real-world data from the extensions spec, whose response schemas may be inferred
  * from real responses:
  * - objects keyed by domain names (e.g. {"example.ch": {...}}) become maps (additionalProperties), which is also the
  *   correct schema;
@@ -60,7 +60,7 @@ export function sanitize(node: Json): Json {
 async function main() {
   const file = process.argv[2] ?? DEFAULT_FILE;
   const before = await readFile(file, "utf8");
-  // Same layout as ik-api-explore writes it (one-space indent, no final newline) to keep diffs small.
+  // Same layout as the file already uses (one-space indent, no final newline) to keep diffs small.
   const after = JSON.stringify(sanitize(JSON.parse(before)), null, 1);
   if (after === before) {
     console.log(`${file}: already clean`);

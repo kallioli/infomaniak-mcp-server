@@ -119,7 +119,7 @@ describe("mcp tools", () => {
   });
 });
 
-describe("ik-api-explore extensions", () => {
+describe("undocumented operations", () => {
   it("includes undocumented operations under their category", () => {
     const m = catalog.match("GET", "/1/web_hostings/123456/sites");
     expect(m?.op.undocumented).toBe(true);

@@ -21,7 +21,7 @@ export interface Operation {
   summary: string;
   description?: string;
   deprecated?: boolean;
-  /** Not in the official spec (discovered by ik-api-explore). */
+  /** Not in the official spec (see spec/infomaniak-extensions.openapi.json). */
   undocumented?: boolean;
   /** Explicitly flagged as dangerous (orders, transfers…); see isDangerous for the full rule. */
   dangerous?: boolean;
