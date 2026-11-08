@@ -2,6 +2,8 @@
 
 # infomaniak-mcp-server
 
+[![CI](https://github.com/kallioli/infomaniak-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/kallioli/infomaniak-mcp-server/actions/workflows/ci.yml)
+
 > **Unofficial project**, not affiliated with or endorsed by Infomaniak. "Infomaniak" is a trademark of Infomaniak
 > Network SA. Part of the catalog relies on undocumented API operations that may change or break without notice.
 
@@ -157,6 +159,16 @@ npm start                    # http://0.0.0.0:3000/mcp, health check on /health
 ```
 
 ### Container
+
+Prebuilt images (linux/amd64 and linux/arm64) are published to GitHub Container Registry by the CI: `latest` follows
+`main`, version tags (`v1.2.3`) give `1.2.3` and `1.2`, and every build is also tagged with its short commit sha.
+
+```bash
+podman run -d --name infomaniak-mcp-server -p 3000:3000 -p 127.0.0.1:9090:9090 \
+  -v infomaniak-mcp-data:/data ghcr.io/kallioli/infomaniak-mcp-server:latest
+```
+
+To build it yourself:
 
 The image is built from the [Containerfile](Containerfile) (multi-stage, Node 24 Alpine, runs as `node`, ~200 MB,
 data in the `/data` volume, admin port bound to localhost in the example below):
