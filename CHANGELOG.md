@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-11-15
+
+### Security
+- API paths are now checked in the exact form they are sent. Backslashes, dot segments (also percent-encoded), `?`
+  and `#` in `path` are refused: they let a path accepted as an allowed operation reach another endpoint, bypassing
+  the categories allowed per token or OAuth rule, the categories disabled by default (Orders, Invoicing & Payments)
+  and the confirmation of risky operations.
+- OAuth: before sending the user to Infomaniak, the server asks them to allow the client that registered itself and
+  shows where the access will be sent. The approval is remembered per browser. The authorization can only be approved
+  and completed in the browser that started it, so a link to a sign-in started by someone else is refused.
+- OAuth refresh tokens expire after 90 days without use.
+
+### Fixed
+- Without `PUBLIC_URL`, the icon URLs follow `X-Forwarded-Host` behind a trusted reverse proxy.
+- A missing logo file no longer stops the server; its route answers 404.
+
+### Changed
+- The admin portal shows the logo from `assets/favicon.svg` instead of its own copy.
+
 ## [0.1.2] - 2026-11-08
 
 ### Added
@@ -49,6 +68,7 @@ First release.
 ### Distribution
 - Container image for linux/amd64 and linux/arm64 on `ghcr.io/kallioli/infomaniak-mcp-server`.
 
+[0.1.3]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.3
 [0.1.2]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.2
 [0.1.1]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.1
 [0.1.0]: https://github.com/kallioli/infomaniak-mcp-server/releases/tag/v0.1.0
