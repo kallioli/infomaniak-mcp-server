@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, Icon } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { type Catalog, type HttpMethod, type Operation, isDangerous } from "./catalog.js";
-import type { InfomaniakClient } from "./infomaniak.js";
+import { DEFAULT_BASE_URL, type InfomaniakClient } from "./infomaniak.js";
 import { type Organisation, loadOrganisations } from "./organisations.js";
 import { VERSION } from "./version.js";
 
@@ -66,6 +66,32 @@ function fillTemplate(path: string, params: Record<string, string | number> = {}
   return path.replace(/\{([^}]+)\}/g, (whole, name: string) =>
     params[name] !== undefined ? encodeURIComponent(String(params[name])) : whole,
   );
+}
+
+/**
+ * The path exactly as it will be fetched, or why it is refused. The path is authorised by matching it against the
+ * catalog and then fetched, so both must see the same thing: a URL parser rewrites backslashes and dot segments (in
+ * clear or percent-encoded) and cuts the query and fragment, which would let an allowed path reach another endpoint.
+ */
+export function canonicalPath(path: string): { path: string } | { error: string } {
+  const refuse = (reason: string) => ({ error: `Invalid path ${JSON.stringify(path)}: ${reason}.` });
+  if (/[\\?#\u0000-\u001f\u007f]/.test(path)) {
+    return refuse("it contains a backslash, '?', '#' or a control character (pass query parameters in `query`)");
+  }
+  for (const segment of path.split("/")) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return refuse("it contains an invalid percent-encoding");
+    }
+    // An encoded slash or backslash may be decoded upstream, so the segment's parts must not be dot segments either.
+    if (decoded.split(/[\/\\]/).some((part) => part === "." || part === "..")) return refuse("it contains a '.' or '..' segment");
+  }
+  // Only percent-encoding can differ now (e.g. non-ASCII characters), which changes no path segment.
+  const url = new URL(path, DEFAULT_BASE_URL);
+  if (url.origin !== DEFAULT_BASE_URL || !path.startsWith("/")) return refuse("it must be a path on the API host");
+  return { path: url.pathname };
 }
 
 export function createServer(options: ServerOptions): McpServer {
@@ -231,10 +257,13 @@ export function createServer(options: ServerOptions): McpServer {
         if (params[name] === undefined && rawPath.includes(`{${name}}`)) params[name] = accountId;
       }
     }
-    const path = fillTemplate(rawPath.startsWith("/") ? rawPath : `/${rawPath}`, params);
-    if (/\{[^}]+\}/.test(path)) {
-      return text(`Unresolved placeholders in path ${path}. Provide them in path_params.`, true);
+    const filled = fillTemplate(rawPath.startsWith("/") ? rawPath : `/${rawPath}`, params);
+    if (/\{[^}]+\}/.test(filled)) {
+      return text(`Unresolved placeholders in path ${filled}. Provide them in path_params.`, true);
     }
+    const canonical = canonicalPath(filled);
+    if ("error" in canonical) return text(canonical.error, true);
+    const { path } = canonical;
     const matched = catalog.match(method, path);
     if (!matched) {
       return text(
@@ -257,7 +286,7 @@ export function createServer(options: ServerOptions): McpServer {
     if (body !== undefined && op.body && op.body.contentType !== "application/json") {
       return text(`${op.id} expects a ${op.body.contentType} body, which this server does not support yet.`, true);
     }
-    // Checked here, once the path is normalised and resolved, so no spelling of the path can skip it.
+    // Checked here, on the canonical path that is matched and sent, so no spelling of the path can skip it.
     if (isDangerous(op)) {
       const refusal = await confirmDangerous(op, method, path, connection.name, target.confirm);
       if (refusal) return refusal;

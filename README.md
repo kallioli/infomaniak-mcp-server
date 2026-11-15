@@ -139,7 +139,8 @@ Modes can be combined:
 
 1. Create an OAuth application in the Infomaniak Manager with the redirect URI `https://<your-server>/oauth/callback`.
 2. Enter the public URL, client id and client secret in the portal (wizard or **Settings**).
-3. Add the server in your client with just its URL; the client handles the login.
+3. Add the server in your client with just its URL; the client handles the login. The first time, the server asks
+   the user to allow that client, showing where the access will be sent; the browser remembers the answer.
 
 By default, someone who signs in acts with **their own Infomaniak login only**. The **OAuth access** page grants more
 through rules matching the user by Infomaniak user id, e-mail address or e-mail domain: shared connections, the

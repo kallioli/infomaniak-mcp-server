@@ -13,6 +13,11 @@ export const ACCESS_TOKEN_PREFIX = "imcp_";
 
 const PENDING_TTL = 10 * 60;
 const CODE_TTL = 5 * 60;
+/** A refresh token unused this long expires; each refresh issues a new one. */
+const REFRESH_TTL = 90 * 24 * 3600;
+/** How long a browser remembers the clients the user approved, and how many. */
+const CONSENT_TTL = 90 * 24 * 3600;
+const MAX_REMEMBERED_CLIENTS = 20;
 
 export interface InfomaniakOAuthOptions {
   secret: string;
@@ -44,6 +49,10 @@ interface PendingAuthorization {
   state?: string;
   codeChallenge: string;
   verifier: string;
+  /** Random value also set as a cookie: the authorization can only be approved and completed in this browser. */
+  nonce: string;
+  /** Shown on the consent page. */
+  clientName?: string;
 }
 
 interface AuthorizationCode {
@@ -63,6 +72,18 @@ interface SealedToken {
 
 function base64urlSha256(value: string): string {
   return createHash("sha256").update(value).digest("base64url");
+}
+
+function readCookie(req: Request, name: string): string | undefined {
+  for (const part of (req.headers.cookie ?? "").split(";")) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return undefined;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 /**
@@ -108,15 +129,76 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
     };
   }
 
+  /**
+   * Any client can register itself with any redirect URI, while Infomaniak only sees this server's own application.
+   * So before sending the user to Infomaniak, the server asks them to approve the client that will receive the access
+   * (MCP "confused deputy" protection), unless this browser already approved it. The approval and the callback are
+   * bound to the browser by a cookie, so a link to a flow started elsewhere cannot be completed by the victim.
+   */
   async authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void> {
-    const verifier = randomBytes(32).toString("base64url");
+    const nonce = readCookie(res.req, this.cookies.nonce) || randomBytes(16).toString("base64url");
+    res.cookie(this.cookies.nonce, nonce, this.cookieOptions(PENDING_TTL));
     const pending: PendingAuthorization = {
       cid: base64urlSha256(client.client_id),
       redirectUri: params.redirectUri,
       state: params.state,
       codeChallenge: params.codeChallenge,
-      verifier,
+      verifier: randomBytes(32).toString("base64url"),
+      nonce,
+      clientName: client.client_name,
     };
+    if (this.approvedClients(res.req).includes(pending.cid)) {
+      this.redirectToInfomaniak(res, pending);
+      return;
+    }
+    this.consentPage(res, pending);
+  }
+
+  /** Express handler for POST /oauth/consent, the answer to the consent page. */
+  readonly handleConsent = (req: Request, res: Response): void => {
+    const { request, decision } = (req.body ?? {}) as Record<string, string | undefined>;
+    const pending = request ? this.sealer.open<PendingAuthorization>("consent", request) : undefined;
+    if (!pending || readCookie(req, this.cookies.nonce) !== pending.nonce) {
+      console.warn("OAuth consent with an invalid, expired or foreign request");
+      res.status(400).type("text/plain").send("Invalid or expired authorization request. Please start the connection again.");
+      return;
+    }
+    if (decision !== "approve") {
+      const back = new URL(pending.redirectUri);
+      if (pending.state) back.searchParams.set("state", pending.state);
+      back.searchParams.set("error", "access_denied");
+      back.searchParams.set("error_description", "The user did not allow this application.");
+      res.redirect(303, back.href);
+      return;
+    }
+    const approved = [pending.cid, ...this.approvedClients(req).filter((c) => c !== pending.cid)].slice(0, MAX_REMEMBERED_CLIENTS);
+    res.cookie(this.cookies.consents, this.sealer.seal("consents", { cids: approved }, CONSENT_TTL), this.cookieOptions(CONSENT_TTL));
+    this.redirectToInfomaniak(res, pending, 303);
+  };
+
+  private get cookies() {
+    // __Host- cookies need HTTPS; plain names keep local http:// setups working.
+    const prefix = this.options.publicUrl.protocol === "https:" ? "__Host-" : "";
+    return { nonce: `${prefix}imcp-oauth`, consents: `${prefix}imcp-consents` };
+  }
+
+  private cookieOptions(maxAgeSeconds: number) {
+    return {
+      httpOnly: true,
+      // Lax: the cookie must come back with the top-level redirect from login.infomaniak.com.
+      sameSite: "lax" as const,
+      secure: this.options.publicUrl.protocol === "https:",
+      path: "/",
+      maxAge: maxAgeSeconds * 1000,
+    };
+  }
+
+  private approvedClients(req: Request): string[] {
+    const value = readCookie(req, this.cookies.consents);
+    return (value && this.sealer.open<{ cids: string[] }>("consents", value)?.cids) || [];
+  }
+
+  private redirectToInfomaniak(res: Response, pending: PendingAuthorization, status = 302): void {
     const url = new URL(this.authorizeUrl);
     url.search = new URLSearchParams({
       response_type: "code",
@@ -124,11 +206,56 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
       redirect_uri: this.callbackUrl.href,
       scope: this.options.scopes.join(" "),
       state: this.sealer.seal("pending", pending, PENDING_TTL),
-      code_challenge: base64urlSha256(verifier),
+      code_challenge: base64urlSha256(pending.verifier),
       code_challenge_method: "S256",
       access_type: "offline",
     }).toString();
-    res.redirect(302, url.href);
+    res.redirect(status, url.href);
+  }
+
+  private consentPage(res: Response, pending: PendingAuthorization): void {
+    const name = escapeHtml(pending.clientName?.trim() || "An application");
+    const host = escapeHtml(new URL(pending.redirectUri).host || pending.redirectUri);
+    const request = escapeHtml(this.sealer.seal("consent", pending, PENDING_TTL));
+    res
+      .status(200)
+      .set({
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; form-action 'self'; frame-ancestors 'none'",
+        "X-Frame-Options": "DENY",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+      })
+      .type("html")
+      .send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allow access — Infomaniak MCP Server</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+body{font-family:system-ui,sans-serif;background:#f5f7fb;color:#1c2333;margin:0;display:grid;place-items:center;min-height:100vh}
+main{background:#fff;border-radius:12px;box-shadow:0 2px 12px #0001;padding:32px;max-width:440px;margin:16px}
+h1{font-size:1.25rem;margin:16px 0 8px}p{line-height:1.5}code{background:#eef1f6;padding:2px 6px;border-radius:4px}
+.actions{display:flex;gap:12px;margin-top:24px}button{flex:1;padding:10px;border-radius:8px;border:1px solid #c9d1de;font-size:1rem;cursor:pointer}
+button[value=approve]{background:#0098ff;border-color:#0098ff;color:#fff}
+</style>
+</head>
+<body>
+<main>
+<img src="/favicon.svg" width="48" height="48" alt="">
+<h1>Allow ${name} to use Infomaniak?</h1>
+<p><strong>${name}</strong> asks to act on your Infomaniak account through this MCP server. You will sign in with
+Infomaniak next, then access is sent to <code>${host}</code>.</p>
+<p>Only continue if you started this connection yourself from that application.</p>
+<form method="post" action="/oauth/consent">
+<input type="hidden" name="request" value="${request}">
+<div class="actions"><button name="decision" value="deny">Cancel</button><button name="decision" value="approve">Allow</button></div>
+</form>
+</main>
+</body>
+</html>
+`);
   }
 
   /** Express handler for GET /oauth/callback, where Infomaniak sends the user back. */
@@ -138,6 +265,12 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
     if (!pending) {
       console.warn(`OAuth callback with an invalid or expired state${error ? ` (Infomaniak error: ${quote(error)} ${quote(description)})` : ""}`);
       res.status(400).type("text/plain").send("Invalid or expired authorization request. Please start the connection again.");
+      return;
+    }
+    if (readCookie(req, this.cookies.nonce) !== pending.nonce) {
+      // Started in another browser: completing it here would hand this user's access to whoever started it.
+      console.warn("OAuth callback from a browser that did not start the authorization");
+      res.status(400).type("text/plain").send("This sign-in was not started from this browser. Please start the connection again.");
       return;
     }
     const back = new URL(pending.redirectUri);
@@ -246,7 +379,7 @@ export class InfomaniakOAuthProvider implements OAuthServerProvider {
       token_type: "Bearer",
       expires_in: expiresIn,
       ...(upstream.refresh_token
-        ? { refresh_token: this.sealer.seal("refresh", { cid, token: upstream.refresh_token, identity } satisfies SealedToken) }
+        ? { refresh_token: this.sealer.seal("refresh", { cid, token: upstream.refresh_token, identity } satisfies SealedToken, REFRESH_TTL) }
         : {}),
       scope: this.options.scopes.join(" "),
     };

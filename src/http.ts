@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import type { Request, RequestHandler, Response } from "express";
+import express, { type Request, type RequestHandler, type Response } from "express";
 import { getOAuthProtectedResourceMetadataUrl, mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -111,6 +111,11 @@ export function createHttpApp(
     if (active) void active.provider.handleCallback(req, res);
     else next();
   });
+  app.post("/oauth/consent", express.urlencoded({ extended: false, limit: "16kb" }), (req, res, next) => {
+    const active = currentOAuth();
+    if (active) active.provider.handleConsent(req, res);
+    else next();
+  });
 
   const unauthorized = (res: Response, message: string, invalidToken = false) => {
     const resourceMetadataUrl = currentOAuth()?.metadataUrl;
@@ -196,7 +201,8 @@ export function createHttpApp(
       organisations: await loadOrganisations(client, connections),
       readOnly,
       maxResponseChars,
-      icons: serverIcons(publicUrl?.origin ?? `${req.protocol}://${req.get("host")}`),
+      // req.host follows X-Forwarded-Host when the reverse proxy is trusted, like req.protocol.
+      icons: serverIcons(publicUrl?.origin ?? `${req.protocol}://${req.host}`),
     });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {

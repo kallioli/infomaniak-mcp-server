@@ -121,7 +121,7 @@ export class Catalog {
           const m = part.match(/^\{([^}]+)\}$/);
           if (!m) return part.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
           names.push(m[1]);
-          return "([^/]+)";
+          return "([^/\\\\?#]+)";
         })
         .join("");
       this.matchers.push({ op, regex: new RegExp(`^${pattern}$`), names });

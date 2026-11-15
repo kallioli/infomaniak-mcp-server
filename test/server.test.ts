@@ -21,9 +21,9 @@ function fakeFetch(calls: { url: string; init: RequestInit }[], status = 200, pa
   }) as typeof fetch;
 }
 
-async function connect(opts: { readOnly?: boolean; fetch?: typeof fetch } = {}) {
+async function connect(opts: { readOnly?: boolean; fetch?: typeof fetch; catalog?: Catalog } = {}) {
   const server = createServer({
-    catalog,
+    catalog: opts.catalog ?? catalog,
     client: new InfomaniakClient({ fetch: opts.fetch ?? fakeFetch([]) }),
     connections: [{ name: "infomaniak", token: "secret-token" }],
     readOnly: opts.readOnly,
@@ -141,6 +141,42 @@ describe("undocumented operations", () => {
     const spec = JSON.parse(raw);
     expect(sanitize(spec)).toEqual(spec);
     expect(raw).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  });
+});
+
+describe("path traversal", () => {
+  // A token limited to DNS must not reach invoices or orders by dressing their path up as a DNS one.
+  const dnsOnly = catalog.restrict(["Domain & Zone"]);
+  const attacks = [
+    { tool: "infomaniak_get", path: "/2/zones/..\\..\\1\\invoicing\\1\\addresses#/records" },
+    { tool: "infomaniak_get", path: "/2/zones/%2e%2e/%2E%2E/1/invoicing/1/addresses#/records" },
+    { tool: "infomaniak_get", path: "/2/zones/..%2F..%2F1%2Finvoicing/records" },
+    { tool: "infomaniak_get", path: "/2/zones/x/records?/../../1/invoicing" },
+    { tool: "infomaniak_request", path: "/2/zones/..\\..\\order\\cart\\abc\\checkout#", method: "POST", body: {} },
+    { tool: "infomaniak_get", path: "/2/zones/{zone}/records", path_params: { zone: ".." } },
+  ];
+
+  it.each(attacks)("refuses $path", async ({ tool, ...args }) => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const client = await connect({ fetch: fakeFetch(calls), catalog: dnsOnly });
+    const res = await client.callTool({ name: tool, arguments: args });
+    expect(res.isError).toBe(true);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("still accepts encoded values and sends exactly the path it matched", async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const client = await connect({ fetch: fakeFetch(calls), catalog: dnsOnly });
+    for (const zone of ["café.ch", "a/b"]) {
+      const res = await client.callTool({ name: "infomaniak_get", arguments: { path: "/2/zones/{zone}/records", path_params: { zone } } });
+      expect(res.isError).toBeFalsy();
+    }
+    await client.callTool({ name: "infomaniak_get", arguments: { path: "/2/zones/café.ch/records" } });
+    expect(calls.map((c) => c.url)).toEqual([
+      "https://api.infomaniak.com/2/zones/caf%C3%A9.ch/records",
+      "https://api.infomaniak.com/2/zones/a%2Fb/records",
+      "https://api.infomaniak.com/2/zones/caf%C3%A9.ch/records",
+    ]);
   });
 });
 

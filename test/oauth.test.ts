@@ -6,6 +6,7 @@ import { createHttpApp } from "../src/http.js";
 import { InfomaniakClient } from "../src/infomaniak.js";
 import { InfomaniakOAuthProvider } from "../src/oauth/provider.js";
 import { Sealer } from "../src/oauth/seal.js";
+import { Browser } from "./browser.js";
 
 const PORT = 40_000 + Math.floor(Math.random() * 10_000);
 const BASE = `http://localhost:${PORT}`;
@@ -94,31 +95,29 @@ describe("oauth flow", () => {
     const clientId: string = registration.client_id;
     expect(clientId).toBeTruthy();
 
-    // 2. Authorization request: redirected to Infomaniak with this server's own app.
+    // 2. Authorization request: the user approves the client, then goes to Infomaniak with this server's own app.
     const verifier = randomBytes(32).toString("base64url");
     const challenge = createHash("sha256").update(verifier).digest("base64url");
-    const authorize = await fetch(
-      `${BASE}/authorize?${new URLSearchParams({
-        response_type: "code",
-        client_id: clientId,
-        redirect_uri: REDIRECT,
-        code_challenge: challenge,
-        code_challenge_method: "S256",
-        state: "client-state",
-      })}`,
-      { redirect: "manual" },
-    );
-    expect(authorize.status).toBe(302);
-    const toInfomaniak = new URL(authorize.headers.get("location")!);
+    const browser = new Browser();
+    const authorizeUrl = `${BASE}/authorize?${new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      state: "client-state",
+    })}`;
+    const consent = await browser.fetch(authorizeUrl);
+    expect(consent.status).toBe(200);
+    const toInfomaniak = new URL((await browser.answerConsent(consent, "approve", BASE)).headers.get("location")!);
     expect(toInfomaniak.origin + toInfomaniak.pathname).toBe("https://login.infomaniak.com/authorize");
     expect(toInfomaniak.searchParams.get("client_id")).toBe("app-id");
     expect(toInfomaniak.searchParams.get("redirect_uri")).toBe(`${BASE}/oauth/callback`);
     expect(toInfomaniak.searchParams.get("code_challenge_method")).toBe("S256");
 
     // 3. Infomaniak sends the user back; the server exchanges the code and redirects to the client.
-    const callback = await fetch(
+    const callback = await browser.fetch(
       `${BASE}/oauth/callback?code=upstream-code&state=${encodeURIComponent(toInfomaniak.searchParams.get("state")!)}`,
-      { redirect: "manual" },
     );
     const toClient = new URL(callback.headers.get("location")!);
     expect(toClient.origin + toClient.pathname).toBe(REDIRECT);
@@ -176,7 +175,8 @@ describe("oauth flow", () => {
       ).client_id as string;
     const [victim, attacker] = [await register(), await register()];
     const verifier = randomBytes(32).toString("base64url");
-    const authorize = await fetch(
+    const browser = new Browser();
+    const toInfomaniak = await browser.authorize(
       `${BASE}/authorize?${new URLSearchParams({
         response_type: "code",
         client_id: victim,
@@ -184,10 +184,10 @@ describe("oauth flow", () => {
         code_challenge: createHash("sha256").update(verifier).digest("base64url"),
         code_challenge_method: "S256",
       })}`,
-      { redirect: "manual" },
+      BASE,
     );
-    const state = new URL(authorize.headers.get("location")!).searchParams.get("state")!;
-    const callback = await fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(state)}`, { redirect: "manual" });
+    const state = toInfomaniak.searchParams.get("state")!;
+    const callback = await browser.fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(state)}`);
     const code = new URL(callback.headers.get("location")!).searchParams.get("code")!;
     const res = await fetch(`${BASE}/token`, form({ grant_type: "authorization_code", code, client_id: attacker, code_verifier: verifier, redirect_uri: REDIRECT }));
     expect(res.status).toBe(400);

@@ -14,14 +14,15 @@ async function withServer(env: Record<string, string>, run: (url: string) => Pro
   try {
     await run(`http://127.0.0.1:${(server.address() as { port: number }).port}`);
   } finally {
-    server.close();
+    server.closeAllConnections();
+    await new Promise((r) => server.close(r));
   }
 }
 
-async function serverInfo(url: string) {
+async function serverInfo(url: string, headers: Record<string, string> = {}) {
   const res = await fetch(`${url}/mcp`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: "Bearer api-token" },
+    headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: "Bearer api-token", ...headers },
     body: JSON.stringify({
       jsonrpc: "2.0",
       id: 1,
@@ -38,7 +39,7 @@ describe("server icon", () => {
       const svg = await fetch(`${url}/favicon.svg`);
       expect(svg.status).toBe(200);
       expect(svg.headers.get("content-type")).toContain("image/svg+xml");
-      expect(await svg.text()).toBe(readFileSync("assets/favicon.svg", "utf8"));
+      expect(await svg.text()).toBe(readFileSync(new URL("../assets/favicon.svg", import.meta.url), "utf8"));
 
       const png = await fetch(`${url}/favicon.png`);
       expect(png.headers.get("content-type")).toBe("image/png");
@@ -64,6 +65,11 @@ describe("server icon", () => {
     });
     await withServer({ PUBLIC_URL: "https://mcp.example.com" }, async (url) => {
       expect((await serverInfo(url)).icons[0].src).toBe("https://mcp.example.com/favicon.svg");
+    });
+    // Without a public URL, the address the client used through a trusted reverse proxy.
+    await withServer({ TRUST_PROXY: "1" }, async (url) => {
+      const info = await serverInfo(url, { "x-forwarded-proto": "https", "x-forwarded-host": "mcp.example.org" });
+      expect(info.icons[0].src).toBe("https://mcp.example.org/favicon.svg");
     });
   });
 });

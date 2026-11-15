@@ -9,6 +9,7 @@ import { createHttpApp } from "../src/http.js";
 import { InfomaniakClient } from "../src/infomaniak.js";
 import { InfomaniakOAuthProvider } from "../src/oauth/provider.js";
 import { type OAuthIdentity, Store } from "../src/store/db.js";
+import { Browser } from "./browser.js";
 
 const PORT = 41_000 + Math.floor(Math.random() * 9_000);
 const BASE = `http://localhost:${PORT}`;
@@ -72,8 +73,8 @@ const form = (params: Record<string, string>) => ({
   body: new URLSearchParams(params),
 });
 
-/** Registers a client and starts an authorization; returns the state Infomaniak would send back. */
-async function authorize() {
+/** Registers a client and starts an authorization in a browser; returns the state Infomaniak would send back. */
+async function authorize(browser = new Browser()) {
   const { client_id } = await (
     await fetch(`${BASE}/register`, {
       method: "POST",
@@ -82,7 +83,7 @@ async function authorize() {
     })
   ).json();
   const verifier = randomBytes(32).toString("base64url");
-  const started = await fetch(
+  const toInfomaniak = await browser.authorize(
     `${BASE}/authorize?${new URLSearchParams({
       response_type: "code",
       client_id,
@@ -90,17 +91,16 @@ async function authorize() {
       code_challenge: createHash("sha256").update(verifier).digest("base64url"),
       code_challenge_method: "S256",
     })}`,
-    { redirect: "manual" },
+    BASE,
   );
-  const state = new URL(started.headers.get("location")!).searchParams.get("state")!;
-  return { client_id, verifier, state };
+  return { client_id, verifier, state: toInfomaniak.searchParams.get("state")!, browser };
 }
 
 /** Runs the whole OAuth dance; returns the access token, or the error the client is redirected with. */
 async function signIn(who: Record<string, unknown>): Promise<{ accessToken?: string; error?: string; description?: string }> {
   identity = who;
-  const { client_id, verifier, state } = await authorize();
-  const callback = await fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(state)}`, { redirect: "manual" });
+  const { client_id, verifier, state, browser } = await authorize();
+  const callback = await browser.fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(state)}`);
   const back = new URL(callback.headers.get("location")!);
   if (back.searchParams.get("error")) {
     return { error: back.searchParams.get("error")!, description: back.searchParams.get("error_description") ?? undefined };
@@ -190,12 +190,73 @@ describe("OAuth users and the admin's rules", () => {
   });
 });
 
+describe("consent to dynamically registered clients", () => {
+  const EVIL = "https://evil.example/cb";
+  async function register(redirect: string, name?: string): Promise<string> {
+    const res = await fetch(`${BASE}/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ redirect_uris: [redirect], token_endpoint_auth_method: "none", ...(name ? { client_name: name } : {}) }),
+    });
+    return (await res.json()).client_id;
+  }
+  const authorizeUrl = (client_id: string, redirect_uri: string) =>
+    `${BASE}/authorize?${new URLSearchParams({
+      response_type: "code",
+      client_id,
+      redirect_uri,
+      code_challenge: createHash("sha256").update("v".repeat(43)).digest("base64url"),
+      code_challenge_method: "S256",
+    })}`;
+
+  it("shows who receives the access before sending the user to Infomaniak", async () => {
+    const client = await register(EVIL, '<img src=x onerror=alert(1)>');
+    const victim = new Browser();
+    const page = await victim.fetch(authorizeUrl(client, EVIL));
+    expect(page.status).toBe(200);
+    expect(page.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    const html = await page.clone().text();
+    expect(html).toContain("<code>evil.example</code>");
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&#60;img src=x");
+
+    const denied = new URL((await victim.answerConsent(page, "deny", BASE)).headers.get("location")!);
+    expect(denied.origin + denied.pathname).toBe(EVIL);
+    expect(denied.searchParams.get("error")).toBe("access_denied");
+  });
+
+  it("cannot be approved or completed from another browser", async () => {
+    const client = await register(EVIL);
+    const attacker = new Browser();
+    const victim = new Browser();
+    // A consent form replayed from another browser (e.g. a cross-site auto-submitted form) is refused.
+    const page = await attacker.fetch(authorizeUrl(client, EVIL));
+    expect((await victim.answerConsent(page, "approve", BASE)).status).toBe(400);
+    // The attacker approves their own client, then sends the Infomaniak link to the victim: the callback refuses it.
+    const toInfomaniak = await attacker.authorize(authorizeUrl(client, EVIL), BASE);
+    const callback = await victim.fetch(`${BASE}/oauth/callback?code=c&state=${encodeURIComponent(toInfomaniak.searchParams.get("state")!)}`);
+    expect(callback.status).toBe(400);
+    expect(callback.headers.get("location")).toBeNull();
+  });
+
+  it("is remembered per browser and per client", async () => {
+    const client = await register(REDIRECT);
+    const browser = new Browser();
+    await browser.authorize(authorizeUrl(client, REDIRECT), BASE);
+    const again = await browser.fetch(authorizeUrl(client, REDIRECT));
+    expect(again.status).toBe(302);
+    expect(again.headers.get("location")).toMatch(/^https:\/\/login\.infomaniak\.com\/authorize/);
+    expect((await browser.fetch(authorizeUrl(await register(REDIRECT), REDIRECT))).status).toBe(200);
+    expect((await new Browser().fetch(authorizeUrl(client, REDIRECT))).status).toBe(200);
+  });
+});
+
 describe("Infomaniak errors on the callback", () => {
   it("are logged and passed on to the client", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
-      const { state } = await authorize();
-      const callback = await fetch(
+      const { state, browser } = await authorize();
+      const callback = await browser.fetch(
         `${BASE}/oauth/callback?${new URLSearchParams({ state, error: "invalid_scope", error_description: "Unknown scope\nfake log line" })}`,
         { redirect: "manual" },
       );
